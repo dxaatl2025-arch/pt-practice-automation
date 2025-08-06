@@ -13,7 +13,14 @@
     "install-all": "npm run install-server && npm run install-client",
     "start": "cd server && npm start"
   },
-  "keywords": ["property-management", "saas", "react", "nodejs", "mongodb", "firebase"],
+  "keywords": [
+    "property-management",
+    "saas",
+    "react",
+    "nodejs",
+    "mongodb",
+    "firebase"
+  ],
   "author": "Your Name",
   "license": "MIT",
   "devDependencies": {
@@ -22,5 +29,10 @@
   "engines": {
     "node": ">=16.0.0",
     "npm": ">=8.0.0"
+  },
+  "dependencies": {
+    "axios": "^1.11.0",
+    "react-hot-toast": "^2.5.2",
+    "react-router-dom": "^7.7.1"
   }
 }
