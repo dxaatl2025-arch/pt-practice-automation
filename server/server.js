@@ -9,7 +9,7 @@ const compression = require('compression');
 dotenv.config();
 
 // Import database connection
-const connectDB = require('./src/config/database');
+//const connectDB = require('./src/config/database');
 
 // Import routes (we'll create these next)
 const authRoutes = require('./src/routes/auth');
@@ -26,7 +26,7 @@ const { limiter } = require('./src/middleware/rateLimiter');
 const app = express();
 
 // Connect to database
-connectDB();
+//connectDB();
 
 // Security middleware
 app.use(helmet());
