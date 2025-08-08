@@ -1,4 +1,7 @@
-// src/App.js - Complete PropertyPulse without Tailwind dependencies
+// src/App
+// .js - Complete PropertyPulse without Tailwind dependencies
+// Add this import at the very top of App.js
+import { auth } from './services/firebase';
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './App.css';
@@ -154,7 +157,11 @@ function App() {
     testAPIConnection();
     fetchData();
   }, []);
-
+// Add this useEffect to test Firebase
+useEffect(() => {
+  console.log('🔥 Firebase Auth initialized:', auth ? '✅ Success' : '❌ Failed');
+  console.log('🔥 Firebase Project ID:', auth?.app?.options?.projectId);
+}, []);
   const testAPIConnection = async () => {
     try {
       const response = await axios.get(`${API_URL}/health`);
