@@ -1,15 +1,18 @@
- const express = require('express');
+const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const compression = require('compression');
+const userRoutes = require('./src/routes/users');
+
 
 // Load environment variables
+console.log('MongoDB URI:', process.env.MONGODB_URI ? 'Found' : 'Missing');
 dotenv.config();
 
 // Import database connection
-//const connectDB = require('./src/config/database');
+const connectDB = require('./src/config/database');
 
 // Import routes (we'll create these next)
 const authRoutes = require('./src/routes/auth');
@@ -18,6 +21,10 @@ const leaseRoutes = require('./src/routes/leases');
 const paymentRoutes = require('./src/routes/payments');
 const tenantRoutes = require('./src/routes/tenants');
 const landlordRoutes = require('./src/routes/landlords');
+const maintenanceRoutes = require('./src/routes/maintenance');
+
+// NEW: Import payment integration routes
+const paymentIntegrationRoutes = require('./src/routes/paymentIntegration');
 
 // Import middleware
 const errorHandler = require('./src/middleware/errorHandler');
@@ -26,7 +33,7 @@ const { limiter } = require('./src/middleware/rateLimiter');
 const app = express();
 
 // Connect to database
-//connectDB();
+connectDB();
 
 // Security middleware
 app.use(helmet());
@@ -60,6 +67,8 @@ if (process.env.NODE_ENV === 'development') {
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
+
+
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Rate limiting
@@ -82,6 +91,12 @@ app.use('/api/leases', leaseRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/tenants', tenantRoutes);
 app.use('/api/landlords', landlordRoutes);
+app.use('/api/maintenance', maintenanceRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/ai', require('./src/routes/ai'));
+
+// NEW: Payment integration routes
+app.use('/api/payment-integration', paymentIntegrationRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {
