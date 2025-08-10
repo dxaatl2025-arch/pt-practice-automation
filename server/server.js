@@ -22,7 +22,8 @@ const paymentRoutes = require('./src/routes/payments');
 const tenantRoutes = require('./src/routes/tenants');
 const landlordRoutes = require('./src/routes/landlords');
 const maintenanceRoutes = require('./src/routes/maintenance');
-
+const rentalApplicationRoutes = require('./src/routes/rentalApplications');
+const healthRoutes = require('./src/routes/health');
 // NEW: Import payment integration routes
 const paymentIntegrationRoutes = require('./src/routes/paymentIntegration');
 
@@ -38,7 +39,7 @@ connectDB();
 // Security middleware
 app.use(helmet());
 app.use(compression());
-
+app.set('trust proxy', 1);
 // CORS configuration
 const corsOptions = {
   origin: function (origin, callback) {
@@ -94,7 +95,8 @@ app.use('/api/landlords', landlordRoutes);
 app.use('/api/maintenance', maintenanceRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/ai', require('./src/routes/ai'));
-
+app.use('/api/rental-applications', rentalApplicationRoutes);
+app.use('/api/health', healthRoutes);
 // NEW: Payment integration routes
 app.use('/api/payment-integration', paymentIntegrationRoutes);
 
@@ -113,6 +115,15 @@ const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT} in ${process.env.NODE_ENV} mode`);
+  console.log(`📋 Rental Applications API available at http://localhost:${PORT}/api/rental-applications`);
+  
+  // Test email service
+  try {
+    const emailService = require('./src/services/emailService');
+    emailService.testConnection();
+  } catch (error) {
+    console.log('Email service not yet configured');
+  }
 });
 
 module.exports = app;

@@ -1,0 +1,256 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  firstName String?
+  lastName  String?
+  role      UserRole @default(TENANT)
+  phone     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  properties       Property[]
+  leases          Lease[]
+  payments        Payment[]
+  maintenanceTickets MaintenanceTicket[]
+  rentalApplications RentalApplication[]
+
+  @@map("users")
+  @@index([email])
+}
+
+model Property {
+  id          String   @id @default(cuid())
+  address     String
+  city        String
+  state       String
+  zipCode     String
+  rent        Float
+  bedrooms    Int
+  bathrooms   Float
+  squareFeet  Int?
+  description String?
+  status      PropertyStatus @default(AVAILABLE)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  ownerId     String
+  owner       User     @relation(fields: [ownerId], references: [id])
+  leases      Lease[]
+  maintenanceTickets MaintenanceTicket[]
+  rentalApplications RentalApplication[]
+
+  @@map("properties")
+  @@index([ownerId])
+  @@index([status])
+}
+
+model Lease {
+  id          String   @id @default(cuid())
+  startDate   DateTime
+  endDate     DateTime
+  monthlyRent Float
+  securityDeposit Float?
+  status      LeaseStatus @default(ACTIVE)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  propertyId  String
+  tenantId    String
+  property    Property @relation(fields: [propertyId], references: [id])
+  tenant      User     @relation(fields: [tenantId], references: [id])
+  payments    Payment[]
+
+  @@map("leases")
+  @@index([propertyId])
+  @@index([tenantId])
+  @@index([status])
+}
+
+model Payment {
+  id          String   @id @default(cuid())
+  amount      Float
+  dueDate     DateTime
+  paidDate    DateTime?
+  status      PaymentStatus @default(PENDING)
+  type        PaymentType   @default(RENT)
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  leaseId     String
+  tenantId    String
+  lease       Lease    @relation(fields: [leaseId], references: [id])
+  tenant      User     @relation(fields: [tenantId], references: [id])
+
+  @@map("payments")
+  @@index([leaseId])
+  @@index([tenantId])
+  @@index([status])
+  @@index([dueDate])
+}
+
+model MaintenanceTicket {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  priority    Priority @default(MEDIUM)
+  status      TicketStatus @default(OPEN)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  propertyId  String
+  tenantId    String
+  property    Property @relation(fields: [propertyId], references: [id])
+  tenant      User     @relation(fields: [tenantId], references: [id])
+
+  @@map("maintenance_tickets")
+  @@index([propertyId])
+  @@index([tenantId])
+  @@index([status])
+  @@index([priority])
+}
+
+model RentalApplication {
+  id                    String   @id @default(cuid())
+  applicationNumber     String   @unique
+  
+  // Personal Information
+  firstName            String
+  lastName             String
+  email                String
+  phone                String
+  dateOfBirth          DateTime
+  socialSecurityNumber String
+  
+  // Current Address
+  currentAddress       String
+  currentCity          String
+  currentState         String
+  currentZip           String
+  currentRent          Float?
+  moveOutReason        String?
+  
+  // Employment
+  employer             String?
+  jobTitle             String?
+  employmentLength     String?
+  monthlyIncome        Float?
+  additionalIncome     Float?
+  
+  // References
+  previousLandlordName    String?
+  previousLandlordPhone   String?
+  emergencyContactName    String
+  emergencyContactPhone   String
+  emergencyContactRelation String
+  
+  // Background
+  hasEvictions         Boolean @default(false)
+  evictionDetails      String?
+  hasCriminalHistory   Boolean @default(false)
+  criminalDetails      String?
+  hasPets              Boolean @default(false)
+  petDetails           String?
+  smokingStatus        String?
+  
+  // Additional
+  additionalOccupants  String?
+  specialRequests      String?
+  
+  // Application Meta
+  signatureData        String?
+  signedAt            DateTime?
+  status              ApplicationStatus @default(PENDING)
+  aiScore             Float?
+  reviewNotes         String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  
+  // Relations
+  propertyId          String
+  applicantId         String?
+  property            Property @relation(fields: [propertyId], references: [id])
+  applicant           User?    @relation(fields: [applicantId], references: [id])
+
+  @@map("rental_applications")
+  @@index([propertyId])
+  @@index([applicantId])
+  @@index([status])
+  @@index([applicationNumber])
+}
+
+// Enums
+enum UserRole {
+  ADMIN
+  LANDLORD
+  TENANT
+  PROPERTY_MANAGER
+}
+
+enum PropertyStatus {
+  AVAILABLE
+  OCCUPIED
+  MAINTENANCE
+  UNAVAILABLE
+}
+
+enum LeaseStatus {
+  ACTIVE
+  EXPIRED
+  TERMINATED
+  PENDING
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  OVERDUE
+  FAILED
+}
+
+enum PaymentType {
+  RENT
+  SECURITY_DEPOSIT
+  LATE_FEE
+  MAINTENANCE
+  OTHER
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum ApplicationStatus {
+  PENDING
+  APPROVED
+  DENIED
+  WITHDRAWN
+}

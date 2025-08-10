@@ -5,9 +5,12 @@ import { auth } from './services/firebase';
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './App.css';
+
+
 // STEP 1: Add these imports at the top of your App.js (after existing imports)
 
 import { FileText, Wand2, Download, Copy, AlertCircle, CheckCircle, Clock } from 'lucide-react';
+import RentalApplicationForm from './components/RentalApplicationForm';
 
 const API_URL = 'http://localhost:5000/api';
 
@@ -822,6 +825,14 @@ No smoking inside the property
             )}
           </button>
 
+            <button
+  onClick={() => setCurrentView('rental-application')}
+  style={styles.navButton(currentView === 'rental-application')}
+>
+  <span>📋</span>
+  <span>Rental Application</span>
+</button>
+
           {/* Status Messages */}
           {error && (
             <div style={{
@@ -1028,6 +1039,13 @@ No smoking inside the property
   <span>🤖</span>
   <span>AI Lease Generator</span>
 </button>
+<button
+  onClick={() => setCurrentView('rental-application')}
+  style={styles.navButton(currentView === 'rental-application')}
+>
+  <span>📋</span>
+  <span>Rental Application</span>
+</button>
         </div>
       </nav>
 
@@ -1055,6 +1073,8 @@ No smoking inside the property
             {currentView === 'payments' && <PaymentsView />}
             {currentView === 'tenants' && <TenantsView />}
             {currentView === 'lease-generator' && <LeaseGeneratorView />}
+            {currentView === 'rental-application' && <RentalApplicationForm />}
+{currentView === 'rental-application' && <RentalApplicationForm />}
           </>
         )}
       </main>
