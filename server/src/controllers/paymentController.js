@@ -1,284 +1,271 @@
-const { validationResult } = require('express-validator');
-const Payment = require('../models/Payment');
-const LeaseAgreement = require('../models/LeaseAgreement');
+// server/src/controllers/paymentController.js - REFACTORED TO USE REPOSITORY
+const repositoryFactory = require('../repositories/factory');
 
-const paymentController = {
-  getPayments: async (req, res) => {
+class PaymentController {
+  constructor() {
+    // Dependency injection - repository is injected via factory
+    this.paymentRepo = repositoryFactory.getPaymentRepository();
+    console.log(`📋 PaymentController using ${repositoryFactory.dbTarget} database`);
+  }
+
+  // Get all payments - SAME API, different backend
+  getPayments = async (req, res) => {
     try {
-      const { tenant, landlord, lease, status, paymentType, page = 1, limit = 10 } = req.query;
+      const { page = 1, limit = 10, status, type, leaseId, tenantId } = req.query;
+      const skip = (page - 1) * limit;
       
-      let filter = {};
-      if (tenant) filter.tenant = tenant;
-      if (landlord) filter.landlord = landlord;
-      if (lease) filter.lease = lease;
-      if (status) filter.status = status;
-      if (paymentType) filter.paymentType = paymentType;
-
-      const skip = (parseInt(page) - 1) * parseInt(limit);
-
-      const [payments, total] = await Promise.all([
-        Payment.find(filter)
-          .populate('lease', 'monthlyRent startDate endDate')
-          .populate('tenant', 'firstName lastName email')
-          .populate('landlord', 'firstName lastName email')
-          .sort({ dueDate: -1 })
-          .skip(skip)
-          .limit(parseInt(limit)),
-        Payment.countDocuments(filter)
-      ]);
-
+      const filters = {};
+      if (status) filters.status = status;
+      if (type) filters.paymentType = type;
+      if (leaseId) filters.leaseId = leaseId;
+      if (tenantId) filters.tenantId = tenantId;
+      
+      // Repository abstracts the database implementation
+      const result = await this.paymentRepo.list({
+        filters,
+        skip: parseInt(skip),
+        limit: parseInt(limit)
+      });
+      
+      // API response identical regardless of database
       res.json({
-        status: 'success',
-        data: {
-          payments,
-          pagination: {
-            page: parseInt(page),
-            limit: parseInt(limit),
-            total,
-            pages: Math.ceil(total / parseInt(limit))
-          }
+        success: true,
+        data: result.payments,
+        pagination: {
+          page: result.page,
+          totalPages: result.totalPages,
+          total: result.total,
+          limit: parseInt(limit)
         }
       });
     } catch (error) {
       res.status(500).json({
-        status: 'error',
-        message: 'Failed to fetch payments',
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        success: false,
+        message: error.message
       });
     }
-  },
+  }
 
-  getPayment: async (req, res) => {
+  // Get payment by ID - SAME API, different backend
+  getPayment = async (req, res) => {
     try {
-      const payment = await Payment.findById(req.params.id)
-        .populate('lease')
-        .populate('tenant', 'firstName lastName email')
-        .populate('landlord', 'firstName lastName email');
-
+      const { id } = req.params;
+      
+      // Repository abstracts the database implementation
+      const payment = await this.paymentRepo.findById(id);
+      
       if (!payment) {
         return res.status(404).json({
-          status: 'error',
+          success: false,
           message: 'Payment not found'
         });
       }
-
+      
+      // API response identical regardless of database
       res.json({
-        status: 'success',
-        data: { payment }
+        success: true,
+        data: payment
       });
     } catch (error) {
       res.status(500).json({
-        status: 'error',
-        message: 'Failed to fetch payment',
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        success: false,
+        message: error.message
       });
     }
-  },
+  }
 
-  createPayment: async (req, res) => {
+  // Create payment - SAME API, different backend
+  createPayment = async (req, res) => {
     try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          status: 'error',
-          message: 'Validation failed',
-          errors: errors.array()
-        });
-      }
-
-      const lease = await LeaseAgreement.findById(req.body.lease);
-      if (!lease) {
-        return res.status(404).json({
-          status: 'error',
-          message: 'Lease not found'
-        });
-      }
-
       const paymentData = {
         ...req.body,
-        landlord: lease.landlord,
-        tenant: lease.tenant
+        // Add any default values or processing here
       };
-
-      const payment = new Payment(paymentData);
-      await payment.save();
-      await payment.populate('lease tenant landlord');
-
+      
+      // Repository handles the database implementation
+      const payment = await this.paymentRepo.create(paymentData);
+      
+      // API response identical regardless of database
       res.status(201).json({
-        status: 'success',
+        success: true,
         message: 'Payment created successfully',
-        data: { payment }
+        data: payment
       });
     } catch (error) {
-      res.status(500).json({
-        status: 'error',
-        message: 'Failed to create payment',
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      res.status(400).json({
+        success: false,
+        message: error.message
       });
     }
-  },
+  }
 
-  updatePayment: async (req, res) => {
+  // Update payment
+  updatePayment = async (req, res) => {
     try {
-      const payment = await Payment.findByIdAndUpdate(
-        req.params.id,
-        { $set: req.body },
-        { new: true, runValidators: true }
-      ).populate('lease tenant landlord');
-
+      const { id } = req.params;
+      
+      const payment = await this.paymentRepo.update(id, req.body);
+      
       if (!payment) {
         return res.status(404).json({
-          status: 'error',
+          success: false,
           message: 'Payment not found'
         });
       }
-
+      
       res.json({
-        status: 'success',
+        success: true,
         message: 'Payment updated successfully',
-        data: { payment }
+        data: payment
       });
     } catch (error) {
-      res.status(500).json({
-        status: 'error',
-        message: 'Failed to update payment',
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      res.status(400).json({
+        success: false,
+        message: error.message
       });
     }
-  },
+  }
 
-  deletePayment: async (req, res) => {
+  // Delete payment
+  deletePayment = async (req, res) => {
     try {
-      const payment = await Payment.findByIdAndDelete(req.params.id);
-      if (!payment) {
+      const { id } = req.params;
+      
+      const deleted = await this.paymentRepo.delete(id);
+      
+      if (!deleted) {
         return res.status(404).json({
-          status: 'error',
+          success: false,
           message: 'Payment not found'
         });
       }
-
+      
       res.json({
-        status: 'success',
+        success: true,
         message: 'Payment deleted successfully'
       });
     } catch (error) {
       res.status(500).json({
-        status: 'error',
-        message: 'Failed to delete payment',
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined
-      });
-    }
-  },
-
-  markAsPaid: async (req, res) => {
-    try {
-      const { paymentMethod, transactionId } = req.body;
-
-      const payment = await Payment.findByIdAndUpdate(
-        req.params.id,
-        {
-          status: 'paid',
-          paidDate: new Date(),
-          paymentMethod,
-          'transactionDetails.transactionId': transactionId
-        },
-        { new: true }
-      ).populate('lease tenant landlord');
-
-      if (!payment) {
-        return res.status(404).json({
-          status: 'error',
-          message: 'Payment not found'
-        });
-      }
-
-      res.json({
-        status: 'success',
-        message: 'Payment marked as paid',
-        data: { payment }
-      });
-    } catch (error) {
-      res.status(500).json({
-        status: 'error',
-        message: 'Failed to process payment',
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined
-      });
-    }
-  },
-
-  getOverduePayments: async (req, res) => {
-    try {
-      const overduePayments = await Payment.find({
-        status: { $in: ['pending', 'overdue'] },
-        dueDate: { $lt: new Date() }
-      })
-      .populate('lease', 'monthlyRent')
-      .populate('tenant', 'firstName lastName email')
-      .populate('landlord', 'firstName lastName email')
-      .sort({ dueDate: 1 });
-
-      res.json({
-        status: 'success',
-        data: { payments: overduePayments, count: overduePayments.length }
-      });
-    } catch (error) {
-      res.status(500).json({
-        status: 'error',
-        message: 'Failed to fetch overdue payments',
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined
-      });
-    }
-  },
-
-  generateRentPayments: async (req, res) => {
-    try {
-      const { leaseId, months = 12 } = req.body;
-
-      const lease = await LeaseAgreement.findById(leaseId);
-      if (!lease) {
-        return res.status(404).json({
-          status: 'error',
-          message: 'Lease not found'
-        });
-      }
-
-      const payments = [];
-      const startDate = new Date(lease.startDate);
-
-      for (let i = 0; i < months; i++) {
-        const dueDate = new Date(startDate);
-        dueDate.setMonth(startDate.getMonth() + i);
-        dueDate.setDate(lease.paymentDueDate);
-
-        if (dueDate <= lease.endDate) {
-          const payment = new Payment({
-            lease: lease._id,
-            tenant: lease.tenant,
-            landlord: lease.landlord,
-            amount: lease.monthlyRent,
-            paymentType: 'rent',
-            dueDate: dueDate,
-            status: 'pending'
-          });
-
-          await payment.save();
-          payments.push(payment);
-        }
-      }
-
-      res.status(201).json({
-        status: 'success',
-        message: `Generated ${payments.length} rent payments`,
-        data: { payments }
-      });
-    } catch (error) {
-      res.status(500).json({
-        status: 'error',
-        message: 'Failed to generate rent payments',
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        success: false,
+        message: error.message
       });
     }
   }
-};
 
+  // Get payments by lease
+  getPaymentsByLease = async (req, res) => {
+    try {
+      const { leaseId } = req.params;
+      const { limit } = req.query;
+      
+      const payments = await this.paymentRepo.findByLeaseId(leaseId, {
+        limit: limit ? parseInt(limit) : undefined
+      });
+      
+      res.json({
+        success: true,
+        data: payments
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  // Get payments by tenant
+  getPaymentsByTenant = async (req, res) => {
+    try {
+      const { tenantId } = req.params;
+      const { limit } = req.query;
+      
+      const payments = await this.paymentRepo.findByTenantId(tenantId, {
+        limit: limit ? parseInt(limit) : undefined
+      });
+      
+      res.json({
+        success: true,
+        data: payments
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  // Get overdue payments
+  getOverduePayments = async (req, res) => {
+    try {
+      const payments = await this.paymentRepo.findOverduePayments();
+      
+      res.json({
+        success: true,
+        data: payments
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  // Get upcoming payments
+  getUpcomingPayments = async (req, res) => {
+    try {
+      const { days = 7 } = req.query;
+      
+      const payments = await this.paymentRepo.findUpcomingPayments(parseInt(days));
+      
+      res.json({
+        success: true,
+        data: payments
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  // Mark payment as paid
+  markPaymentPaid = async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { paidDate, transactionId, paymentMethod } = req.body;
+      
+      const payment = await this.paymentRepo.update(id, {
+        status: 'paid',
+        paidDate: paidDate || new Date(),
+        transactionId,
+        paymentMethod
+      });
+      
+      if (!payment) {
+        return res.status(404).json({
+          success: false,
+          message: 'Payment not found'
+        });
+      }
+      
+      res.json({
+        success: true,
+        message: 'Payment marked as paid',
+        data: payment
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+}
+
+// Export controller instance
+const paymentController = new PaymentController();
 module.exports = paymentController;

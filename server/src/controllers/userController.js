@@ -1,192 +1,227 @@
- const { validationResult } = require('express-validator');
-const User = require('../models/User');
+// server/src/controllers/userController.js - COMPLETE IMPLEMENTATION
+const repositoryFactory = require('../repositories/factory');
 
-const userController = {
-  getUsers: async (req, res) => {
+class UserController {
+  constructor() {
+    // Dependency injection - repository is injected via factory
+    this.userRepo = repositoryFactory.getUserRepository();
+    console.log(`📋 UserController using ${repositoryFactory.dbTarget} database`);
+  }
+
+  // Get all users - SAME API, different backend
+  getUsers = async (req, res) => {
     try {
-      const { role, page = 1, limit = 10 } = req.query;
+      const { page = 1, limit = 10, role } = req.query;
+      const skip = (page - 1) * limit;
       
-      let filter = {};
-      if (role) filter.role = role;
-
-      const skip = (parseInt(page) - 1) * parseInt(limit);
-
-      const [users, total] = await Promise.all([
-        User.find(filter)
-          .select('-password')
-          .sort({ createdAt: -1 })
-          .skip(skip)
-          .limit(parseInt(limit)),
-        User.countDocuments(filter)
-      ]);
-
+      const filters = role ? { role } : {};
+      
+      // Repository abstracts the database implementation
+      const result = await this.userRepo.list({
+        filters,
+        skip: parseInt(skip),
+        limit: parseInt(limit)
+      });
+      
+      // API response identical regardless of database
       res.json({
-        status: 'success',
-        data: {
-          users,
-          pagination: {
-            page: parseInt(page),
-            limit: parseInt(limit),
-            total,
-            pages: Math.ceil(total / parseInt(limit))
-          }
+        success: true,
+        data: result.users,
+        pagination: {
+          page: result.page,
+          totalPages: result.totalPages,
+          total: result.total,
+          limit: parseInt(limit)
         }
       });
     } catch (error) {
       res.status(500).json({
-        status: 'error',
-        message: 'Failed to fetch users',
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        success: false,
+        message: error.message
       });
     }
-  },
+  }
 
-  getUser: async (req, res) => {
+  // Get user by ID - SAME API, different backend
+  getUser = async (req, res) => {
     try {
-      const user = await User.findById(req.params.id).select('-password');
+      const { id } = req.params;
+      
+      // Repository abstracts the database implementation
+      const user = await this.userRepo.findById(id);
       
       if (!user) {
         return res.status(404).json({
-          status: 'error',
+          success: false,
           message: 'User not found'
         });
       }
-
+      
+      // API response identical regardless of database
       res.json({
-        status: 'success',
-        data: { user }
+        success: true,
+        data: user
       });
     } catch (error) {
       res.status(500).json({
-        status: 'error',
-        message: 'Failed to fetch user',
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        success: false,
+        message: error.message
       });
     }
-  },
+  }
 
-  createUser: async (req, res) => {
+  // Create user - SAME API, different backend
+  createUser = async (req, res) => {
     try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
+      const { email, password, firstName, lastName, role, phone } = req.body;
+      
+      // Check if user exists - repository method
+      const existingUser = await this.userRepo.findByEmail(email);
+      if (existingUser) {
         return res.status(400).json({
-          status: 'error',
-          message: 'Validation failed',
-          errors: errors.array()
+          success: false,
+          message: 'User already exists'
         });
       }
-
-      const user = new User(req.body);
-      await user.save();
-
+      
+      // Repository handles password hashing internally
+      const user = await this.userRepo.create({
+        email,
+        password,
+        firstName,
+        lastName,
+        role,
+        phone
+      });
+      
+      // API response identical regardless of database
       res.status(201).json({
-        status: 'success',
+        success: true,
         message: 'User created successfully',
-        data: { user }
+        data: user
       });
     } catch (error) {
-      if (error.code === 11000) {
-        return res.status(400).json({
-          status: 'error',
-          message: 'Email or Firebase UID already exists'
-        });
-      }
-
-      res.status(500).json({
-        status: 'error',
-        message: 'Failed to create user',
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      res.status(400).json({
+        success: false,
+        message: error.message
       });
     }
-  },
+  }
 
-  updateUser: async (req, res) => {
+  // Update user
+  updateUser = async (req, res) => {
     try {
-      const user = await User.findByIdAndUpdate(
-        req.params.id,
-        { $set: req.body },
-        { new: true, runValidators: true }
-      ).select('-password');
-
-      if (!user) {
-        return res.status(404).json({
-          status: 'error',
-          message: 'User not found'
-        });
-      }
-
-      res.json({
-        status: 'success',
-        message: 'User updated successfully',
-        data: { user }
-      });
-    } catch (error) {
-      res.status(500).json({
-        status: 'error',
-        message: 'Failed to update user',
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined
-      });
-    }
-  },
-
-  deleteUser: async (req, res) => {
-    try {
-      const user = await User.findByIdAndDelete(req.params.id);
+      const { id } = req.params;
+      
+      const user = await this.userRepo.update(id, req.body);
       
       if (!user) {
         return res.status(404).json({
-          status: 'error',
+          success: false,
           message: 'User not found'
         });
       }
-
+      
       res.json({
-        status: 'success',
+        success: true,
+        message: 'User updated successfully',
+        data: user
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  // Delete user
+  deleteUser = async (req, res) => {
+    try {
+      const { id } = req.params;
+      
+      const deleted = await this.userRepo.delete(id);
+      
+      if (!deleted) {
+        return res.status(404).json({
+          success: false,
+          message: 'User not found'
+        });
+      }
+      
+      res.json({
+        success: true,
         message: 'User deleted successfully'
       });
     } catch (error) {
       res.status(500).json({
-        status: 'error',
-        message: 'Failed to delete user',
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined
-      });
-    }
-  },
-
-  loginUser: async (req, res) => {
-    try {
-      const { email, firebaseUid } = req.body;
-      
-      let user;
-      if (firebaseUid) {
-        user = await User.findOne({ firebaseUid });
-      } else if (email) {
-        user = await User.findOne({ email });
-      }
-
-      if (!user) {
-        return res.status(404).json({
-          status: 'error',
-          message: 'User not found'
-        });
-      }
-
-      user.lastLogin = new Date();
-      await user.save();
-
-      res.json({
-        status: 'success',
-        message: 'Login successful',
-        data: { user }
-      });
-    } catch (error) {
-      res.status(500).json({
-        status: 'error',
-        message: 'Login failed',
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        success: false,
+        message: error.message
       });
     }
   }
-};
 
+  // Get tenants (users with role 'tenant')
+  getTenants = async (req, res) => {
+    try {
+      const { page = 1, limit = 10 } = req.query;
+      const skip = (page - 1) * limit;
+      
+      const result = await this.userRepo.list({
+        filters: { role: 'TENANT' },
+        skip: parseInt(skip),
+        limit: parseInt(limit)
+      });
+      
+      res.json({
+        success: true,
+        data: result.users,
+        pagination: {
+          page: result.page,
+          totalPages: result.totalPages,
+          total: result.total,
+          limit: parseInt(limit)
+        }
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  // Get landlords (users with role 'landlord')
+  getLandlords = async (req, res) => {
+    try {
+      const { page = 1, limit = 10 } = req.query;
+      const skip = (page - 1) * limit;
+      
+      const result = await this.userRepo.list({
+        filters: { role: 'LANDLORD' },
+        skip: parseInt(skip),
+        limit: parseInt(limit)
+      });
+      
+      res.json({
+        success: true,
+        data: result.users,
+        pagination: {
+          page: result.page,
+          totalPages: result.totalPages,
+          total: result.total,
+          limit: parseInt(limit)
+        }
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+}
+
+// Export controller instance
+const userController = new UserController();
 module.exports = userController;

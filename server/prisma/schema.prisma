@@ -1,6 +1,4 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
+// server/prisma/schema.prisma - COMPLETE FILE
 generator client {
   provider = "prisma-client-js"
 }
@@ -22,9 +20,9 @@ model User {
   updatedAt DateTime @updatedAt
   
   // Relations
-  properties       Property[]
-  leases          Lease[]
-  payments        Payment[]
+  properties         Property[] // This allows User to be a landlord
+  tenantLeases      Lease[] @relation("TenantLeases")
+  payments          Payment[]
   maintenanceTickets MaintenanceTicket[]
   rentalApplications RentalApplication[]
 
@@ -34,29 +32,63 @@ model User {
 
 model Property {
   id          String   @id @default(cuid())
-  address     String
-  city        String
-  state       String
-  zipCode     String
-  rent        Float
+  
+  // Basic info
+  title       String
+  description String
+  propertyType PropertyType
+  
+  // Address (flattened from nested structure)
+  addressStreet  String
+  addressCity    String  
+  addressState   String
+  addressZip     String
+  addressCountry String @default("US")
+  
+  // Physical details
   bedrooms    Int
   bathrooms   Float
   squareFeet  Int?
-  description String?
-  status      PropertyStatus @default(AVAILABLE)
+  
+  // Financial (flattened from nested rent structure)
+  rentAmount   Float
+  rentCurrency String @default("USD")
+  rentPeriod   RentPeriod @default(MONTHLY)
+  deposit      Float @default(0)
+  
+  // Status and availability
+  status           PropertyStatus @default(ACTIVE)
+  isAvailable      Boolean @default(true)
+  availableFrom    DateTime?
+  availableTo      DateTime?
+  
+  // Additional data (stored as JSON to handle complex nested data)
+  amenities        Json? // Array of strings
+  images          Json? // Array of image objects  
+  utilities       Json? // Object with included/excluded arrays
+  petPolicy       Json? // Object with pet policy details
+  
+  // Location coordinates
+  latitude   Float?
+  longitude  Float?
+  
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   
   // Relations
-  ownerId     String
-  owner       User     @relation(fields: [ownerId], references: [id])
+  landlordId  String
+  landlord    User     @relation(fields: [landlordId], references: [id])
   leases      Lease[]
   maintenanceTickets MaintenanceTicket[]
   rentalApplications RentalApplication[]
 
   @@map("properties")
-  @@index([ownerId])
+  @@index([landlordId])
   @@index([status])
+  @@index([isAvailable])
+  @@index([addressCity, addressState])
+  @@index([propertyType])
+  @@index([rentAmount])
 }
 
 model Lease {
@@ -73,7 +105,7 @@ model Lease {
   propertyId  String
   tenantId    String
   property    Property @relation(fields: [propertyId], references: [id])
-  tenant      User     @relation(fields: [tenantId], references: [id])
+  tenant      User     @relation("TenantLeases", fields: [tenantId], references: [id])
   payments    Payment[]
 
   @@map("leases")
@@ -205,11 +237,26 @@ enum UserRole {
   PROPERTY_MANAGER
 }
 
+enum PropertyType {
+  APARTMENT
+  HOUSE
+  CONDO
+  TOWNHOUSE
+  STUDIO
+  OTHER
+}
+
+enum RentPeriod {
+  DAILY
+  WEEKLY  
+  MONTHLY
+}
+
 enum PropertyStatus {
-  AVAILABLE
-  OCCUPIED
+  ACTIVE
+  INACTIVE
+  RENTED
   MAINTENANCE
-  UNAVAILABLE
 }
 
 enum LeaseStatus {

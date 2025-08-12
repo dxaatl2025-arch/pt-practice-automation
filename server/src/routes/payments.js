@@ -44,7 +44,8 @@ router.post('/', [
 router.post('/generate-rent', [
   body('leaseId').isMongoId().withMessage('Valid lease ID required'),
   body('months').optional().isInt({ min: 1, max: 60 })
-], paymentController.generateRentPayments);
+], (req, res) => res.status(501).json({ success: false, message: 'generateRentPayments not implemented yet' }));
+
 
 // @route   PUT /api/payments/:id
 // @desc    Update payment
@@ -57,7 +58,7 @@ router.put('/:id', paymentController.updatePayment);
 router.post('/:id/pay', [
   body('paymentMethod').optional().isIn(['credit_card', 'bank_transfer', 'check', 'cash', 'online', 'ach']),
   body('transactionId').optional().isString()
-], paymentController.markAsPaid);
+], paymentController.markPaymentPaid);
 
 // @route   DELETE /api/payments/:id
 // @desc    Delete payment

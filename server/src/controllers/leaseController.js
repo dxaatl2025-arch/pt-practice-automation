@@ -1,238 +1,237 @@
-// src/controllers/leaseController.js
-const { validationResult } = require('express-validator');
-const LeaseAgreement = require('../models/LeaseAgreement');
-const Property = require('../models/Property');
-const User = require('../models/User');
+// server/src/controllers/leaseController.js - REFACTORED TO USE REPOSITORY
+const repositoryFactory = require('../repositories/factory');
 
-const leaseController = {
-  // GET /api/leases - Get all leases with filters
-  getLeases: async (req, res) => {
+class LeaseController {
+  constructor() {
+    // Dependency injection - repository is injected via factory
+    this.leaseRepo = repositoryFactory.getLeaseRepository();
+    console.log(`📋 LeaseController using ${repositoryFactory.dbTarget} database`);
+  }
+
+  // Get all leases - SAME API, different backend
+  getLeases = async (req, res) => {
     try {
-      const { landlord, tenant, property, status, page = 1, limit = 10 } = req.query;
+      const { page = 1, limit = 10, status, propertyId, tenantId } = req.query;
+      const skip = (page - 1) * limit;
       
-      let filter = {};
-      if (landlord) filter.landlord = landlord;
-      if (tenant) filter.tenant = tenant;
-      if (property) filter.property = property;
-      if (status) filter.status = status;
-
-      const skip = (parseInt(page) - 1) * parseInt(limit);
-
-      const [leases, total] = await Promise.all([
-        LeaseAgreement.find(filter)
-          .populate('property', 'title address rent')
-          .populate('landlord', 'firstName lastName email')
-          .populate('tenant', 'firstName lastName email')
-          .sort({ createdAt: -1 })
-          .skip(skip)
-          .limit(parseInt(limit)),
-        LeaseAgreement.countDocuments(filter)
-      ]);
-
+      const filters = {};
+      if (status) filters.status = status;
+      if (propertyId) filters.propertyId = propertyId;
+      if (tenantId) filters.tenantId = tenantId;
+      
+      // Repository abstracts the database implementation
+      const result = await this.leaseRepo.list({
+        filters,
+        skip: parseInt(skip),
+        limit: parseInt(limit)
+      });
+      
+      // API response identical regardless of database
       res.json({
-        status: 'success',
-        data: {
-          leases,
-          pagination: {
-            page: parseInt(page),
-            limit: parseInt(limit),
-            total,
-            pages: Math.ceil(total / parseInt(limit))
-          }
+        success: true,
+        data: result.leases,
+        pagination: {
+          page: result.page,
+          totalPages: result.totalPages,
+          total: result.total,
+          limit: parseInt(limit)
         }
       });
     } catch (error) {
       res.status(500).json({
-        status: 'error',
-        message: 'Failed to fetch leases',
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        success: false,
+        message: error.message
       });
     }
-  },
+  }
 
-  // GET /api/leases/:id - Get lease by ID
-  getLease: async (req, res) => {
+  // Get lease by ID - SAME API, different backend
+  getLease = async (req, res) => {
     try {
-      const lease = await LeaseAgreement.findById(req.params.id)
-        .populate('property')
-        .populate('landlord', 'firstName lastName email phone')
-        .populate('tenant', 'firstName lastName email phone');
-
+      const { id } = req.params;
+      
+      // Repository abstracts the database implementation
+      const lease = await this.leaseRepo.findById(id);
+      
       if (!lease) {
         return res.status(404).json({
-          status: 'error',
+          success: false,
           message: 'Lease not found'
         });
       }
-
+      
+      // API response identical regardless of database
       res.json({
-        status: 'success',
-        data: { lease }
+        success: true,
+        data: lease
       });
     } catch (error) {
       res.status(500).json({
-        status: 'error',
-        message: 'Failed to fetch lease',
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        success: false,
+        message: error.message
       });
     }
-  },
+  }
 
-  // POST /api/leases - Create new lease
-  createLease: async (req, res) => {
+  // Create lease - SAME API, different backend
+  createLease = async (req, res) => {
     try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          status: 'error',
-          message: 'Validation failed',
-          errors: errors.array()
-        });
-      }
-
-      // Get property and verify ownership
-      const property = await Property.findById(req.body.property);
-      if (!property) {
-        return res.status(404).json({
-          status: 'error',
-          message: 'Property not found'
-        });
-      }
-
-      // Verify tenant exists
-      const tenant = await User.findById(req.body.tenant);
-      if (!tenant || tenant.role !== 'tenant') {
-        return res.status(400).json({
-          status: 'error',
-          message: 'Invalid tenant'
-        });
-      }
-
       const leaseData = {
         ...req.body,
-        landlord: property.landlord
+        // Add any default values or processing here
       };
-
-      const lease = new LeaseAgreement(leaseData);
-      await lease.save();
-      await lease.populate('property landlord tenant');
-
+      
+      // Repository handles the database implementation
+      const lease = await this.leaseRepo.create(leaseData);
+      
+      // API response identical regardless of database
       res.status(201).json({
-        status: 'success',
+        success: true,
         message: 'Lease created successfully',
-        data: { lease }
+        data: lease
       });
     } catch (error) {
-      res.status(500).json({
-        status: 'error',
-        message: 'Failed to create lease',
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      res.status(400).json({
+        success: false,
+        message: error.message
       });
     }
-  },
+  }
 
-  // PUT /api/leases/:id - Update lease
-  updateLease: async (req, res) => {
+  // Update lease
+  updateLease = async (req, res) => {
     try {
-      const lease = await LeaseAgreement.findByIdAndUpdate(
-        req.params.id,
-        { $set: req.body },
-        { new: true, runValidators: true }
-      ).populate('property landlord tenant');
-
+      const { id } = req.params;
+      
+      const lease = await this.leaseRepo.update(id, req.body);
+      
       if (!lease) {
         return res.status(404).json({
-          status: 'error',
+          success: false,
           message: 'Lease not found'
         });
       }
-
+      
       res.json({
-        status: 'success',
+        success: true,
         message: 'Lease updated successfully',
-        data: { lease }
+        data: lease
       });
     } catch (error) {
-      res.status(500).json({
-        status: 'error',
-        message: 'Failed to update lease',
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      res.status(400).json({
+        success: false,
+        message: error.message
       });
     }
-  },
+  }
 
-  // DELETE /api/leases/:id - Delete lease
-  deleteLease: async (req, res) => {
+  // Delete lease
+  deleteLease = async (req, res) => {
     try {
-      const lease = await LeaseAgreement.findByIdAndDelete(req.params.id);
-      if (!lease) {
+      const { id } = req.params;
+      
+      const deleted = await this.leaseRepo.delete(id);
+      
+      if (!deleted) {
         return res.status(404).json({
-          status: 'error',
+          success: false,
           message: 'Lease not found'
         });
       }
-
-      // Make property available again
-      await Property.findByIdAndUpdate(lease.property, { 
-        status: 'active',
-        'availability.isAvailable': true 
-      });
-
+      
       res.json({
-        status: 'success',
+        success: true,
         message: 'Lease deleted successfully'
       });
     } catch (error) {
       res.status(500).json({
-        status: 'error',
-        message: 'Failed to delete lease',
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined
-      });
-    }
-  },
-
-  // POST /api/leases/:id/sign - Sign lease
-  signLease: async (req, res) => {
-    try {
-      const { signedBy } = req.body; // 'tenant' or 'landlord'
-      const updateField = `signatures.${signedBy}.signed`;
-      const dateField = `signatures.${signedBy}.signedAt`;
-
-      const lease = await LeaseAgreement.findByIdAndUpdate(
-        req.params.id,
-        {
-          [updateField]: true,
-          [dateField]: new Date()
-        },
-        { new: true }
-      ).populate('property landlord tenant');
-
-      if (!lease) {
-        return res.status(404).json({
-          status: 'error',
-          message: 'Lease not found'
-        });
-      }
-
-      // Check if both parties signed
-      if (lease.signatures.tenant.signed && lease.signatures.landlord.signed && lease.status === 'draft') {
-        lease.status = 'active';
-        await lease.save();
-      }
-
-      res.json({
-        status: 'success',
-        message: 'Lease signed successfully',
-        data: { lease }
-      });
-    } catch (error) {
-      res.status(500).json({
-        status: 'error',
-        message: 'Failed to sign lease',
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        success: false,
+        message: error.message
       });
     }
   }
-};
 
+  // Get leases by property
+  getLeasesByProperty = async (req, res) => {
+    try {
+      const { propertyId } = req.params;
+      const { limit } = req.query;
+      
+      const leases = await this.leaseRepo.findByPropertyId(propertyId, {
+        limit: limit ? parseInt(limit) : undefined
+      });
+      
+      res.json({
+        success: true,
+        data: leases
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  // Get leases by tenant
+  getLeasesByTenant = async (req, res) => {
+    try {
+      const { tenantId } = req.params;
+      const { limit } = req.query;
+      
+      const leases = await this.leaseRepo.findByTenantId(tenantId, {
+        limit: limit ? parseInt(limit) : undefined
+      });
+      
+      res.json({
+        success: true,
+        data: leases
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  // Get active leases
+  getActiveLeases = async (req, res) => {
+    try {
+      const leases = await this.leaseRepo.findActiveLeases();
+      
+      res.json({
+        success: true,
+        data: leases
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  // Get expiring leases
+  getExpiringLeases = async (req, res) => {
+    try {
+      const { days = 30 } = req.query;
+      
+      const leases = await this.leaseRepo.findExpiringLeases(parseInt(days));
+      
+      res.json({
+        success: true,
+        data: leases
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+}
+
+// Export controller instance
+const leaseController = new LeaseController();
 module.exports = leaseController;

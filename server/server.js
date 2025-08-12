@@ -1,3 +1,7 @@
+// Load environment variables
+
+require('dotenv').config();
+
 const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors');
@@ -6,10 +10,8 @@ const morgan = require('morgan');
 const compression = require('compression');
 const userRoutes = require('./src/routes/users');
 
-
-// Load environment variables
 console.log('MongoDB URI:', process.env.MONGODB_URI ? 'Found' : 'Missing');
-dotenv.config();
+
 
 // Import database connection
 const connectDB = require('./src/config/database');
@@ -26,6 +28,21 @@ const rentalApplicationRoutes = require('./src/routes/rentalApplications');
 const healthRoutes = require('./src/routes/health');
 // NEW: Import payment integration routes
 const paymentIntegrationRoutes = require('./src/routes/paymentIntegration');
+
+// ADD THIS DEBUG CODE HERE:
+console.log('🔍 Checking route imports...');
+console.log('authRoutes:', typeof authRoutes, authRoutes?.constructor?.name);
+console.log('propertyRoutes:', typeof propertyRoutes, propertyRoutes?.constructor?.name);
+console.log('leaseRoutes:', typeof leaseRoutes, leaseRoutes?.constructor?.name);
+console.log('paymentRoutes:', typeof paymentRoutes, paymentRoutes?.constructor?.name);
+console.log('tenantRoutes:', typeof tenantRoutes, tenantRoutes?.constructor?.name);
+console.log('landlordRoutes:', typeof landlordRoutes, landlordRoutes?.constructor?.name);
+console.log('maintenanceRoutes:', typeof maintenanceRoutes, maintenanceRoutes?.constructor?.name);
+console.log('userRoutes:', typeof userRoutes, userRoutes?.constructor?.name);
+console.log('rentalApplicationRoutes:', typeof rentalApplicationRoutes, rentalApplicationRoutes?.constructor?.name);
+console.log('healthRoutes:', typeof healthRoutes, healthRoutes?.constructor?.name);
+console.log('paymentIntegrationRoutes:', typeof paymentIntegrationRoutes, paymentIntegrationRoutes?.constructor?.name);
+
 
 // Import middleware
 const errorHandler = require('./src/middleware/errorHandler');
