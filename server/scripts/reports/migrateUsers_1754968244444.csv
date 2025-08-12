@@ -1,0 +1,111 @@
+Status,LegacyId,NewId,Error,Timestamp
+ERROR,689412acb3e64442bd35efa8,,
+Invalid `userPrisma.user.create()` invocation in
+C:\Users\dessa\Projects\pt-practice-automation\server\scripts\migrateUsers.ts:51:49
+
+  48 }
+  49 
+  50 // Migrate user
+→ 51 const newUser = await userPrisma.user.create({
+       data: {
+         legacyId: "689412acb3e64442bd35efa8";
+         email: "john.smith@propertypulse.com";
+         firstName: "John";
+         lastName: "Smith";
+         role: "landlord";
+         phone: "+1-404-555-0123";
+         createdAt: new Date("2025-08-07T02:42:52.221Z");
+         updatedAt: new Date("2025-08-07T02:42:52.221Z");
+     +   password: String
+       }
+     })
+
+Argument `password` is missing.,2025-08-12T03:10:44.404Z
+ERROR,689412acb3e64442bd35efac,,
+Invalid `userPrisma.user.create()` invocation in
+C:\Users\dessa\Projects\pt-practice-automation\server\scripts\migrateUsers.ts:51:49
+
+  48 }
+  49 
+  50 // Migrate user
+→ 51 const newUser = await userPrisma.user.create({
+       data: {
+         legacyId: "689412acb3e64442bd35efac";
+         email: "sarah.johnson@email.com";
+         firstName: "Sarah";
+         lastName: "Johnson";
+         role: "tenant";
+         phone: "+1-404-555-0124";
+         createdAt: new Date("2025-08-07T02:42:52.251Z");
+         updatedAt: new Date("2025-08-07T02:42:52.251Z");
+     +   password: String
+       }
+     })
+
+Argument `password` is missing.,2025-08-12T03:10:44.411Z
+ERROR,689412acb3e64442bd35efae,,
+Invalid `userPrisma.user.create()` invocation in
+C:\Users\dessa\Projects\pt-practice-automation\server\scripts\migrateUsers.ts:51:49
+
+  48 }
+  49 
+  50 // Migrate user
+→ 51 const newUser = await userPrisma.user.create({
+       data: {
+         legacyId: "689412acb3e64442bd35efae";
+         email: "mike.chen@email.com";
+         firstName: "Mike";
+         lastName: "Chen";
+         role: "tenant";
+         phone: "+1-404-555-0125";
+         createdAt: new Date("2025-08-07T02:42:52.276Z");
+         updatedAt: new Date("2025-08-07T02:42:52.276Z");
+     +   password: String
+       }
+     })
+
+Argument `password` is missing.,2025-08-12T03:10:44.416Z
+ERROR,6896143a331ca4f01533f552,,
+Invalid `userPrisma.user.create()` invocation in
+C:\Users\dessa\Projects\pt-practice-automation\server\scripts\migrateUsers.ts:51:49
+
+  48 }
+  49 
+  50 // Migrate user
+→ 51 const newUser = await userPrisma.user.create({
+       data: {
+         legacyId: "6896143a331ca4f01533f552";
+         email: "sarah.tenant@propertypulse.com";
+         firstName: "Sarah";
+         lastName: "Wilson";
+         role: "tenant";
+         phone: "+1-404-555-0789";
+         createdAt: new Date("2025-08-08T15:14:02.784Z");
+         updatedAt: new Date("2025-08-08T15:14:02.784Z");
+     +   password: String
+       }
+     })
+
+Argument `password` is missing.,2025-08-12T03:10:44.421Z
+ERROR,68961449331ca4f01533f554,,
+Invalid `userPrisma.user.create()` invocation in
+C:\Users\dessa\Projects\pt-practice-automation\server\scripts\migrateUsers.ts:51:49
+
+  48 }
+  49 
+  50 // Migrate user
+→ 51 const newUser = await userPrisma.user.create({
+       data: {
+         legacyId: "68961449331ca4f01533f554";
+         email: "mike.landlord@propertypulse.com";
+         firstName: "Mike";
+         lastName: "Johnson";
+         role: "landlord";
+         phone: "+1-404-555-0234";
+         createdAt: new Date("2025-08-08T15:14:17.923Z");
+         updatedAt: new Date("2025-08-08T15:14:17.923Z");
+     +   password: String
+       }
+     })
+
+Argument `password` is missing.,2025-08-12T03:10:44.427Z

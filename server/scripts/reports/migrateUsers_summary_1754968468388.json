@@ -1,0 +1,10 @@
+{
+  "scriptName": "migrateUsers",
+  "startTime": "2025-08-12T03:14:26.569Z",
+  "totalRecords": 5,
+  "migratedRecords": 5,
+  "skippedRecords": 0,
+  "errorRecords": 0,
+  "errors": [],
+  "endTime": "2025-08-12T03:14:28.387Z"
+}

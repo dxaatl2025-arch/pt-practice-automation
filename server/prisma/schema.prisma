@@ -10,6 +10,7 @@ datasource db {
 
 model User {
   id        String   @id @default(cuid())
+  legacyId  String?  @unique  // ← ADD THIS LINE
   email     String   @unique
   password  String
   firstName String?
@@ -32,6 +33,7 @@ model User {
 
 model Property {
   id          String   @id @default(cuid())
+  legacyId  String?  @unique  // ← ADD THIS LINE
   
   // Basic info
   title       String
@@ -93,6 +95,7 @@ model Property {
 
 model Lease {
   id          String   @id @default(cuid())
+  legacyId  String?  @unique  // ← ADD THIS LINE
   startDate   DateTime
   endDate     DateTime
   monthlyRent Float
@@ -116,6 +119,7 @@ model Lease {
 
 model Payment {
   id          String   @id @default(cuid())
+  legacyId  String?  @unique  // ← ADD THIS LINE
   amount      Float
   dueDate     DateTime
   paidDate    DateTime?
@@ -140,6 +144,7 @@ model Payment {
 
 model MaintenanceTicket {
   id          String   @id @default(cuid())
+  legacyId  String?  @unique  // ← ADD THIS LINE
   title       String
   description String
   priority    Priority @default(MEDIUM)

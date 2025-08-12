@@ -1,0 +1,10 @@
+{
+  "scriptName": "migrateProperties",
+  "startTime": "2025-08-12T03:32:08.630Z",
+  "totalRecords": 3,
+  "migratedRecords": 3,
+  "skippedRecords": 0,
+  "errorRecords": 0,
+  "errors": [],
+  "endTime": "2025-08-12T03:32:10.252Z"
+}

@@ -1,0 +1,85 @@
+Status,LegacyId,NewId,Error,Timestamp
+ERROR,689412acb3e64442bd35efb2,,
+Invalid `propertyPrisma.property.create()` invocation in
+C:\Users\dessa\Projects\pt-practice-automation\server\scripts\migrateProperties.ts:81:61
+
+  78   : property.title || 'Address not provided';
+  79 
+  80 // Migrate property
+→ 81 const newProperty = await propertyPrisma.property.create({
+       data: {
+         legacyId: "689412acb3e64442bd35efb2";
+         address: "100 Peachtree St NE; Atlanta; GA 30309";
+         city: "Atlanta";
+         state: "GA";
+         zipCode: "30309";
+         rent: 2500;
+         bedrooms: 2;
+         bathrooms: 2;
+         squareFeet: 1200;
+         description: "Beautiful 2-bedroom apartment in the heart of downtown Atlanta with stunning city views; premium amenities; and smart home features. Perfect for professionals.";
+         status: "OCCUPIED";
+         ownerId: "cme7ywwoj0000u664ypgowylc";
+         createdAt: new Date("2025-08-07T02:42:52.316Z");
+         updatedAt: new Date("2025-08-08T15:18:15.117Z");
+     +   title: String
+       }
+     })
+
+Argument `title` is missing.,2025-08-12T03:24:41.636Z
+ERROR,689412acb3e64442bd35efb3,,
+Invalid `propertyPrisma.property.create()` invocation in
+C:\Users\dessa\Projects\pt-practice-automation\server\scripts\migrateProperties.ts:81:61
+
+  78   : property.title || 'Address not provided';
+  79 
+  80 // Migrate property
+→ 81 const newProperty = await propertyPrisma.property.create({
+       data: {
+         legacyId: "689412acb3e64442bd35efb3";
+         address: "200 14th St NE; Atlanta; GA 30309";
+         city: "Atlanta";
+         state: "GA";
+         zipCode: "30309";
+         rent: 1800;
+         bedrooms: 1;
+         bathrooms: 1;
+         squareFeet: 650;
+         description: "Perfect studio apartment for young professionals. Walking distance to MARTA; trendy restaurants; and shopping. Modern amenities included.";
+         status: "AVAILABLE";
+         ownerId: "cme7ywwoj0000u664ypgowylc";
+         createdAt: new Date("2025-08-07T02:42:52.317Z");
+         updatedAt: new Date("2025-08-07T02:42:52.317Z");
+     +   title: String
+       }
+     })
+
+Argument `title` is missing.,2025-08-12T03:24:41.645Z
+ERROR,689412acb3e64442bd35efb4,,
+Invalid `propertyPrisma.property.create()` invocation in
+C:\Users\dessa\Projects\pt-practice-automation\server\scripts\migrateProperties.ts:81:61
+
+  78   : property.title || 'Address not provided';
+  79 
+  80 // Migrate property
+→ 81 const newProperty = await propertyPrisma.property.create({
+       data: {
+         legacyId: "689412acb3e64442bd35efb4";
+         address: "500 W Paces Ferry Rd; Atlanta; GA 30327";
+         city: "Atlanta";
+         state: "GA";
+         zipCode: "30327";
+         rent: 4500;
+         bedrooms: 4;
+         bathrooms: 3;
+         squareFeet: 2800;
+         description: "Prestigious 4-bedroom house in exclusive Buckhead neighborhood. Perfect for families with top-rated schools nearby. Luxury finishes throughout.";
+         status: "AVAILABLE";
+         ownerId: "cme7ywwoj0000u664ypgowylc";
+         createdAt: new Date("2025-08-07T02:42:52.317Z");
+         updatedAt: new Date("2025-08-07T02:42:52.317Z");
+     +   title: String
+       }
+     })
+
+Argument `title` is missing.,2025-08-12T03:24:41.653Z

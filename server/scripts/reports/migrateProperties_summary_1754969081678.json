@@ -1,0 +1,197 @@
+{
+  "scriptName": "migrateProperties",
+  "startTime": "2025-08-12T03:24:40.068Z",
+  "totalRecords": 3,
+  "migratedRecords": 0,
+  "skippedRecords": 0,
+  "errorRecords": 3,
+  "errors": [
+    {
+      "record": {
+        "_id": "689412acb3e64442bd35efb2",
+        "landlord": "689412acb3e64442bd35efa8",
+        "title": "Luxury Downtown Apartment",
+        "description": "Beautiful 2-bedroom apartment in the heart of downtown Atlanta with stunning city views, premium amenities, and smart home features. Perfect for professionals.",
+        "address": {
+          "street": "100 Peachtree St NE",
+          "city": "Atlanta",
+          "state": "GA",
+          "zipCode": "30309",
+          "country": "US"
+        },
+        "propertyType": "apartment",
+        "bedrooms": 2,
+        "bathrooms": 2,
+        "squareFeet": 1200,
+        "rent": {
+          "amount": 2500,
+          "currency": "USD",
+          "period": "monthly"
+        },
+        "deposit": 2500,
+        "amenities": [
+          "Pool",
+          "Gym",
+          "Parking",
+          "Balcony",
+          "In-unit Laundry",
+          "Smart Home",
+          "Concierge"
+        ],
+        "availability": {
+          "isAvailable": false,
+          "availableFrom": "2024-03-01T00:00:00.000Z",
+          "availableTo": "2025-02-28T00:00:00.000Z"
+        },
+        "status": "rented",
+        "utilities": {
+          "included": [
+            "Water",
+            "Trash",
+            "Internet"
+          ],
+          "excluded": [
+            "Electricity",
+            "Gas"
+          ]
+        },
+        "petPolicy": {
+          "allowed": true,
+          "deposit": 500,
+          "restrictions": [
+            "Under 50lbs",
+            "No aggressive breeds"
+          ]
+        },
+        "images": [],
+        "__v": 0,
+        "createdAt": "2025-08-07T02:42:52.316Z",
+        "updatedAt": "2025-08-08T15:18:15.117Z"
+      },
+      "error": "\nInvalid `propertyPrisma.property.create()` invocation in\nC:\\Users\\dessa\\Projects\\pt-practice-automation\\server\\scripts\\migrateProperties.ts:81:61\n\n  78   : property.title || 'Address not provided';\n  79 \n  80 // Migrate property\n→ 81 const newProperty = await propertyPrisma.property.create({\n       data: {\n         legacyId: \"689412acb3e64442bd35efb2\",\n         address: \"100 Peachtree St NE, Atlanta, GA 30309\",\n         city: \"Atlanta\",\n         state: \"GA\",\n         zipCode: \"30309\",\n         rent: 2500,\n         bedrooms: 2,\n         bathrooms: 2,\n         squareFeet: 1200,\n         description: \"Beautiful 2-bedroom apartment in the heart of downtown Atlanta with stunning city views, premium amenities, and smart home features. Perfect for professionals.\",\n         status: \"OCCUPIED\",\n         ownerId: \"cme7ywwoj0000u664ypgowylc\",\n         createdAt: new Date(\"2025-08-07T02:42:52.316Z\"),\n         updatedAt: new Date(\"2025-08-08T15:18:15.117Z\"),\n     +   title: String\n       }\n     })\n\nArgument `title` is missing.",
+      "timestamp": "2025-08-12T03:24:41.636Z"
+    },
+    {
+      "record": {
+        "_id": "689412acb3e64442bd35efb3",
+        "landlord": "689412acb3e64442bd35efa8",
+        "title": "Cozy Midtown Studio",
+        "description": "Perfect studio apartment for young professionals. Walking distance to MARTA, trendy restaurants, and shopping. Modern amenities included.",
+        "address": {
+          "street": "200 14th St NE",
+          "city": "Atlanta",
+          "state": "GA",
+          "zipCode": "30309",
+          "country": "US"
+        },
+        "propertyType": "studio",
+        "bedrooms": 0,
+        "bathrooms": 1,
+        "squareFeet": 650,
+        "rent": {
+          "amount": 1800,
+          "currency": "USD",
+          "period": "monthly"
+        },
+        "deposit": 1800,
+        "amenities": [
+          "Gym",
+          "Rooftop Deck",
+          "Concierge",
+          "Package Service"
+        ],
+        "availability": {
+          "isAvailable": false,
+          "availableFrom": "2024-02-15T00:00:00.000Z",
+          "availableTo": "2025-01-15T00:00:00.000Z"
+        },
+        "status": "active",
+        "utilities": {
+          "included": [
+            "Water",
+            "Trash",
+            "Internet",
+            "Electricity"
+          ],
+          "excluded": [
+            "Gas"
+          ]
+        },
+        "petPolicy": {
+          "allowed": false,
+          "deposit": 0,
+          "restrictions": []
+        },
+        "images": [],
+        "__v": 0,
+        "createdAt": "2025-08-07T02:42:52.317Z",
+        "updatedAt": "2025-08-07T02:42:52.317Z"
+      },
+      "error": "\nInvalid `propertyPrisma.property.create()` invocation in\nC:\\Users\\dessa\\Projects\\pt-practice-automation\\server\\scripts\\migrateProperties.ts:81:61\n\n  78   : property.title || 'Address not provided';\n  79 \n  80 // Migrate property\n→ 81 const newProperty = await propertyPrisma.property.create({\n       data: {\n         legacyId: \"689412acb3e64442bd35efb3\",\n         address: \"200 14th St NE, Atlanta, GA 30309\",\n         city: \"Atlanta\",\n         state: \"GA\",\n         zipCode: \"30309\",\n         rent: 1800,\n         bedrooms: 1,\n         bathrooms: 1,\n         squareFeet: 650,\n         description: \"Perfect studio apartment for young professionals. Walking distance to MARTA, trendy restaurants, and shopping. Modern amenities included.\",\n         status: \"AVAILABLE\",\n         ownerId: \"cme7ywwoj0000u664ypgowylc\",\n         createdAt: new Date(\"2025-08-07T02:42:52.317Z\"),\n         updatedAt: new Date(\"2025-08-07T02:42:52.317Z\"),\n     +   title: String\n       }\n     })\n\nArgument `title` is missing.",
+      "timestamp": "2025-08-12T03:24:41.645Z"
+    },
+    {
+      "record": {
+        "_id": "689412acb3e64442bd35efb4",
+        "landlord": "689412acb3e64442bd35efa8",
+        "title": "Spacious Buckhead House",
+        "description": "Prestigious 4-bedroom house in exclusive Buckhead neighborhood. Perfect for families with top-rated schools nearby. Luxury finishes throughout.",
+        "address": {
+          "street": "500 W Paces Ferry Rd",
+          "city": "Atlanta",
+          "state": "GA",
+          "zipCode": "30327",
+          "country": "US"
+        },
+        "propertyType": "house",
+        "bedrooms": 4,
+        "bathrooms": 3,
+        "squareFeet": 2800,
+        "rent": {
+          "amount": 4500,
+          "currency": "USD",
+          "period": "monthly"
+        },
+        "deposit": 4500,
+        "amenities": [
+          "Garage",
+          "Yard",
+          "Fireplace",
+          "Hardwood Floors",
+          "Updated Kitchen"
+        ],
+        "availability": {
+          "isAvailable": true,
+          "availableFrom": "2024-03-01T00:00:00.000Z"
+        },
+        "status": "active",
+        "utilities": {
+          "included": [
+            "Water",
+            "Trash"
+          ],
+          "excluded": [
+            "Electricity",
+            "Gas",
+            "Internet"
+          ]
+        },
+        "petPolicy": {
+          "allowed": true,
+          "deposit": 750,
+          "restrictions": [
+            "Under 75lbs",
+            "Maximum 2 pets"
+          ]
+        },
+        "images": [],
+        "__v": 0,
+        "createdAt": "2025-08-07T02:42:52.317Z",
+        "updatedAt": "2025-08-07T02:42:52.317Z"
+      },
+      "error": "\nInvalid `propertyPrisma.property.create()` invocation in\nC:\\Users\\dessa\\Projects\\pt-practice-automation\\server\\scripts\\migrateProperties.ts:81:61\n\n  78   : property.title || 'Address not provided';\n  79 \n  80 // Migrate property\n→ 81 const newProperty = await propertyPrisma.property.create({\n       data: {\n         legacyId: \"689412acb3e64442bd35efb4\",\n         address: \"500 W Paces Ferry Rd, Atlanta, GA 30327\",\n         city: \"Atlanta\",\n         state: \"GA\",\n         zipCode: \"30327\",\n         rent: 4500,\n         bedrooms: 4,\n         bathrooms: 3,\n         squareFeet: 2800,\n         description: \"Prestigious 4-bedroom house in exclusive Buckhead neighborhood. Perfect for families with top-rated schools nearby. Luxury finishes throughout.\",\n         status: \"AVAILABLE\",\n         ownerId: \"cme7ywwoj0000u664ypgowylc\",\n         createdAt: new Date(\"2025-08-07T02:42:52.317Z\"),\n         updatedAt: new Date(\"2025-08-07T02:42:52.317Z\"),\n     +   title: String\n       }\n     })\n\nArgument `title` is missing.",
+      "timestamp": "2025-08-12T03:24:41.653Z"
+    }
+  ],
+  "endTime": "2025-08-12T03:24:41.676Z"
+}

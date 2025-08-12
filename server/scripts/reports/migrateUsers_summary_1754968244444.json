@@ -1,0 +1,165 @@
+{
+  "scriptName": "migrateUsers",
+  "startTime": "2025-08-12T03:10:43.011Z",
+  "totalRecords": 5,
+  "migratedRecords": 0,
+  "skippedRecords": 0,
+  "errorRecords": 5,
+  "errors": [
+    {
+      "record": {
+        "_id": "689412acb3e64442bd35efa8",
+        "firebaseUid": "sample-landlord-123",
+        "email": "john.smith@propertypulse.com",
+        "firstName": "John",
+        "lastName": "Smith",
+        "role": "landlord",
+        "phone": "+1-404-555-0123",
+        "address": {
+          "street": "123 PropertyPulse Ave",
+          "city": "Atlanta",
+          "state": "GA",
+          "zipCode": "30309",
+          "country": "US"
+        },
+        "isActive": true,
+        "emailVerified": true,
+        "preferences": {
+          "notifications": {
+            "email": true,
+            "sms": false,
+            "push": true
+          },
+          "theme": "light",
+          "language": "en"
+        },
+        "createdAt": "2025-08-07T02:42:52.221Z",
+        "updatedAt": "2025-08-07T02:42:52.221Z",
+        "__v": 0
+      },
+      "error": "\nInvalid `userPrisma.user.create()` invocation in\nC:\\Users\\dessa\\Projects\\pt-practice-automation\\server\\scripts\\migrateUsers.ts:51:49\n\n  48 }\n  49 \n  50 // Migrate user\n→ 51 const newUser = await userPrisma.user.create({\n       data: {\n         legacyId: \"689412acb3e64442bd35efa8\",\n         email: \"john.smith@propertypulse.com\",\n         firstName: \"John\",\n         lastName: \"Smith\",\n         role: \"landlord\",\n         phone: \"+1-404-555-0123\",\n         createdAt: new Date(\"2025-08-07T02:42:52.221Z\"),\n         updatedAt: new Date(\"2025-08-07T02:42:52.221Z\"),\n     +   password: String\n       }\n     })\n\nArgument `password` is missing.",
+      "timestamp": "2025-08-12T03:10:44.404Z"
+    },
+    {
+      "record": {
+        "_id": "689412acb3e64442bd35efac",
+        "firebaseUid": "sample-tenant-456",
+        "email": "sarah.johnson@email.com",
+        "firstName": "Sarah",
+        "lastName": "Johnson",
+        "role": "tenant",
+        "phone": "+1-404-555-0124",
+        "address": {
+          "country": "US"
+        },
+        "isActive": true,
+        "emailVerified": true,
+        "preferences": {
+          "notifications": {
+            "email": true,
+            "sms": false,
+            "push": true
+          },
+          "theme": "light",
+          "language": "en"
+        },
+        "createdAt": "2025-08-07T02:42:52.251Z",
+        "updatedAt": "2025-08-07T02:42:52.251Z",
+        "__v": 0
+      },
+      "error": "\nInvalid `userPrisma.user.create()` invocation in\nC:\\Users\\dessa\\Projects\\pt-practice-automation\\server\\scripts\\migrateUsers.ts:51:49\n\n  48 }\n  49 \n  50 // Migrate user\n→ 51 const newUser = await userPrisma.user.create({\n       data: {\n         legacyId: \"689412acb3e64442bd35efac\",\n         email: \"sarah.johnson@email.com\",\n         firstName: \"Sarah\",\n         lastName: \"Johnson\",\n         role: \"tenant\",\n         phone: \"+1-404-555-0124\",\n         createdAt: new Date(\"2025-08-07T02:42:52.251Z\"),\n         updatedAt: new Date(\"2025-08-07T02:42:52.251Z\"),\n     +   password: String\n       }\n     })\n\nArgument `password` is missing.",
+      "timestamp": "2025-08-12T03:10:44.411Z"
+    },
+    {
+      "record": {
+        "_id": "689412acb3e64442bd35efae",
+        "firebaseUid": "sample-tenant-789",
+        "email": "mike.chen@email.com",
+        "firstName": "Mike",
+        "lastName": "Chen",
+        "role": "tenant",
+        "phone": "+1-404-555-0125",
+        "address": {
+          "country": "US"
+        },
+        "isActive": true,
+        "emailVerified": true,
+        "preferences": {
+          "notifications": {
+            "email": true,
+            "sms": false,
+            "push": true
+          },
+          "theme": "light",
+          "language": "en"
+        },
+        "createdAt": "2025-08-07T02:42:52.276Z",
+        "updatedAt": "2025-08-07T02:42:52.276Z",
+        "__v": 0
+      },
+      "error": "\nInvalid `userPrisma.user.create()` invocation in\nC:\\Users\\dessa\\Projects\\pt-practice-automation\\server\\scripts\\migrateUsers.ts:51:49\n\n  48 }\n  49 \n  50 // Migrate user\n→ 51 const newUser = await userPrisma.user.create({\n       data: {\n         legacyId: \"689412acb3e64442bd35efae\",\n         email: \"mike.chen@email.com\",\n         firstName: \"Mike\",\n         lastName: \"Chen\",\n         role: \"tenant\",\n         phone: \"+1-404-555-0125\",\n         createdAt: new Date(\"2025-08-07T02:42:52.276Z\"),\n         updatedAt: new Date(\"2025-08-07T02:42:52.276Z\"),\n     +   password: String\n       }\n     })\n\nArgument `password` is missing.",
+      "timestamp": "2025-08-12T03:10:44.416Z"
+    },
+    {
+      "record": {
+        "_id": "6896143a331ca4f01533f552",
+        "firebaseUid": "tenant-001",
+        "email": "sarah.tenant@propertypulse.com",
+        "firstName": "Sarah",
+        "lastName": "Wilson",
+        "role": "tenant",
+        "phone": "+1-404-555-0789",
+        "address": {
+          "country": "US"
+        },
+        "isActive": true,
+        "emailVerified": false,
+        "preferences": {
+          "notifications": {
+            "email": true,
+            "sms": false,
+            "push": true
+          },
+          "theme": "light",
+          "language": "en"
+        },
+        "createdAt": "2025-08-08T15:14:02.784Z",
+        "updatedAt": "2025-08-08T15:14:02.784Z",
+        "__v": 0
+      },
+      "error": "\nInvalid `userPrisma.user.create()` invocation in\nC:\\Users\\dessa\\Projects\\pt-practice-automation\\server\\scripts\\migrateUsers.ts:51:49\n\n  48 }\n  49 \n  50 // Migrate user\n→ 51 const newUser = await userPrisma.user.create({\n       data: {\n         legacyId: \"6896143a331ca4f01533f552\",\n         email: \"sarah.tenant@propertypulse.com\",\n         firstName: \"Sarah\",\n         lastName: \"Wilson\",\n         role: \"tenant\",\n         phone: \"+1-404-555-0789\",\n         createdAt: new Date(\"2025-08-08T15:14:02.784Z\"),\n         updatedAt: new Date(\"2025-08-08T15:14:02.784Z\"),\n     +   password: String\n       }\n     })\n\nArgument `password` is missing.",
+      "timestamp": "2025-08-12T03:10:44.421Z"
+    },
+    {
+      "record": {
+        "_id": "68961449331ca4f01533f554",
+        "firebaseUid": "landlord-002",
+        "email": "mike.landlord@propertypulse.com",
+        "firstName": "Mike",
+        "lastName": "Johnson",
+        "role": "landlord",
+        "phone": "+1-404-555-0234",
+        "address": {
+          "country": "US"
+        },
+        "isActive": true,
+        "emailVerified": false,
+        "preferences": {
+          "notifications": {
+            "email": true,
+            "sms": false,
+            "push": true
+          },
+          "theme": "light",
+          "language": "en"
+        },
+        "createdAt": "2025-08-08T15:14:17.923Z",
+        "updatedAt": "2025-08-08T15:14:17.923Z",
+        "__v": 0
+      },
+      "error": "\nInvalid `userPrisma.user.create()` invocation in\nC:\\Users\\dessa\\Projects\\pt-practice-automation\\server\\scripts\\migrateUsers.ts:51:49\n\n  48 }\n  49 \n  50 // Migrate user\n→ 51 const newUser = await userPrisma.user.create({\n       data: {\n         legacyId: \"68961449331ca4f01533f554\",\n         email: \"mike.landlord@propertypulse.com\",\n         firstName: \"Mike\",\n         lastName: \"Johnson\",\n         role: \"landlord\",\n         phone: \"+1-404-555-0234\",\n         createdAt: new Date(\"2025-08-08T15:14:17.923Z\"),\n         updatedAt: new Date(\"2025-08-08T15:14:17.923Z\"),\n     +   password: String\n       }\n     })\n\nArgument `password` is missing.",
+      "timestamp": "2025-08-12T03:10:44.427Z"
+    }
+  ],
+  "endTime": "2025-08-12T03:10:44.442Z"
+}

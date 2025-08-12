@@ -2,6 +2,17 @@
 
 require('dotenv').config();
 
+// ===================================
+// CANARY DEPLOYMENT CONFIGURATION
+// ===================================
+const canaryConfig = {
+  mode: process.env.CANARY_MODE === 'enabled',
+  primaryDb: process.env.DB_TARGET || 'mongo',
+  fallbackEnabled: process.env.ENABLE_MONGODB_FALLBACK === 'true',
+  healthCheckInterval: parseInt(process.env.HEALTH_CHECK_INTERVAL) || 30000
+};
+
+console.log('🎯 Canary Configuration:', canaryConfig);
 const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors');
@@ -11,10 +22,14 @@ const compression = require('compression');
 const userRoutes = require('./src/routes/users');
 
 console.log('MongoDB URI:', process.env.MONGODB_URI ? 'Found' : 'Missing');
-
+console.log('🗄️ Database Target:', process.env.DB_TARGET || 'mongo');
+console.log('🎪 Canary Mode:', canaryConfig.mode ? 'ENABLED' : 'DISABLED');
 
 // Import database connection
 const connectDB = require('./src/config/database');
+
+
+
 
 // Import routes (we'll create these next)
 const authRoutes = require('./src/routes/auth');
@@ -50,6 +65,19 @@ const { limiter } = require('./src/middleware/rateLimiter');
 
 const app = express();
 
+// Root endpoint with canary info
+app.get('/', (req, res) => {
+  res.json({
+    message: 'PropertyPulse API Server',
+    version: process.env.npm_package_version || '2.0.0',
+    canary: canaryConfig,
+    database: {
+      target: process.env.DB_TARGET || 'mongo',
+      fallback: process.env.ENABLE_MONGODB_FALLBACK === 'true'
+    },
+    timestamp: new Date().toISOString()
+  });
+});
 // Connect to database
 connectDB();
 
@@ -89,18 +117,35 @@ app.use(express.json({ limit: '10mb' }));
 
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// Canary deployment middleware
+app.use((req, res, next) => {
+  // Add request timing
+  req.startTime = Date.now();
+  
+  // Add canary headers
+  res.setHeader('X-Database-Target', process.env.DB_TARGET || 'mongo');
+  res.setHeader('X-Canary-Mode', canaryConfig.mode ? 'enabled' : 'disabled');
+  
+  next();
+});
+
+// Response time logging for slow requests
+app.use((req, res, next) => {
+  res.on('finish', () => {
+    const responseTime = Date.now() - req.startTime;
+    if (responseTime > 1000) { // Log slow requests
+      console.warn(`🐌 Slow request: ${req.method} ${req.path} - ${responseTime}ms`);
+    }
+  });
+  next();
+});
 // Rate limiting
 app.use('/api/', limiter);
 
 // Health check endpoint
-app.get('/api/health', (req, res) => {
-  res.status(200).json({
-    status: 'success',
-    message: 'PropertyPulse API is running',
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV
-  });
-});
+//app.get('/api/health', (req, res) => {
+ // res.redirect('/health');
+//});
 
 // API Routes
 app.use('/api/auth', authRoutes);
@@ -113,7 +158,7 @@ app.use('/api/maintenance', maintenanceRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/ai', require('./src/routes/ai'));
 app.use('/api/rental-applications', rentalApplicationRoutes);
-app.use('/api/health', healthRoutes);
+app.use('/health', healthRoutes);
 // NEW: Payment integration routes
 app.use('/api/payment-integration', paymentIntegrationRoutes);
 
@@ -131,8 +176,18 @@ app.use(errorHandler);
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT} in ${process.env.NODE_ENV} mode`);
-  console.log(`📋 Rental Applications API available at http://localhost:${PORT}/api/rental-applications`);
+  console.log(`
+🚀 PropertyPulse API Server Started
+📍 Port: ${PORT}
+🎯 Environment: ${process.env.NODE_ENV || 'development'}
+🗄️  Database Target: ${process.env.DB_TARGET || 'mongo'}
+🏁 Canary Mode: ${canaryConfig.mode ? 'ENABLED' : 'DISABLED'}
+🔄 Fallback: ${canaryConfig.fallbackEnabled ? 'ENABLED' : 'DISABLED'}
+📊 Health Endpoint: http://localhost:${PORT}/health
+🔍 Detailed Health: http://localhost:${PORT}/health/detailed
+🎪 Canary Status: http://localhost:${PORT}/health/canary
+📋 Rental Applications: http://localhost:${PORT}/api/rental-applications
+  `);
   
   // Test email service
   try {
@@ -143,4 +198,23 @@ app.listen(PORT, () => {
   }
 });
 
+// ===================================
+// PERIODIC HEALTH CHECKS
+// ===================================
+if (canaryConfig.mode && process.env.HEALTH_CHECK_BOTH_DBS === 'true') {
+  const repositoryFactory = require('./src/repositories/factory');
+  
+  setInterval(async () => {
+    try {
+      const health = await repositoryFactory.healthCheck();
+      if (health.status !== 'healthy') {
+        console.warn('⚠️  Health check warning:', health);
+      }
+    } catch (error) {
+      console.error('❌ Health check failed:', error.message);
+    }
+  }, canaryConfig.healthCheckInterval);
+  
+  console.log(`🔍 Periodic health checks enabled (${canaryConfig.healthCheckInterval}ms)`);
+}
 module.exports = app;

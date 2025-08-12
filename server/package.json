@@ -17,7 +17,19 @@
     "test:setup": "npm run test:db:reset && npm run test:db:migrate",
     "test:db:reset": "DATABASE_URL=postgresql://test_user:test_pass@localhost:5432/propertypulse_test npx prisma migrate reset --force --skip-generate",
     "test:db:migrate": "DATABASE_URL=postgresql://test_user:test_pass@localhost:5432/propertypulse_test npx prisma migrate deploy",
-    "test:db:studio": "DATABASE_URL=postgresql://test_user:test_pass@localhost:5432/propertypulse_test npx prisma studio"
+    "test:db:studio": "DATABASE_URL=postgresql://test_user:test_pass@localhost:5432/propertypulse_test npx prisma studio",
+    "migrate:users": "ts-node scripts/migrateUsers.ts",
+    "migrate:properties": "ts-node scripts/migrateProperties.ts",
+    "migrate:leases": "ts-node scripts/migrateLeases.ts",
+    "migrate:payments": "ts-node scripts/migratePayments.ts",
+    "migrate:tickets": "ts-node scripts/migrateTickets.ts",
+    "migrate:all": "npm run migrate:users && npm run migrate:properties && npm run migrate:leases && npm run migrate:payments && npm run migrate:tickets",
+    "migrate:verify": "ts-node scripts/verifyMigration.ts",
+    "migrate:clean": "rm -rf scripts/reports scripts/*.json",
+    "prisma:generate": "npx prisma generate",
+    "prisma:migrate": "npx prisma migrate dev",
+    "prisma:studio": "npx prisma studio",
+    "prisma:reset": "npx prisma migrate reset"
   },
   "jest": {
     "testEnvironment": "node",
@@ -72,11 +84,14 @@
     "stripe": "^18.4.0"
   },
   "devDependencies": {
+    "@types/node": "^24.2.1",
     "cross-env": "^10.0.0",
     "jest": "^29.7.0",
     "nodemon": "^3.0.1",
     "prisma": "^6.13.0",
-    "supertest": "^6.3.3"
+    "supertest": "^6.3.3",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.2"
   },
   "engines": {
     "node": ">=16.0.0"
