@@ -29,7 +29,14 @@
     "prisma:generate": "npx prisma generate",
     "prisma:migrate": "npx prisma migrate dev",
     "prisma:studio": "npx prisma studio",
-    "prisma:reset": "npx prisma migrate reset"
+    "prisma:reset": "npx prisma migrate reset",
+    "verify:final": "node scripts/verify-final-migration.js",
+    "cutover:health": "node scripts/monitor-cutover.js health",
+    "cutover:monitor": "node scripts/monitor-cutover.js monitor",
+    "cutover:switch-prisma": "node scripts/monitor-cutover.js switch-prisma",
+    "cutover:switch-mongo": "node scripts/monitor-cutover.js switch-mongo",
+    "cutover:rollback": "node scripts/monitor-cutover.js switch-mongo",
+    "production:cutover": "npm run verify:final"
   },
   "jest": {
     "testEnvironment": "node",
