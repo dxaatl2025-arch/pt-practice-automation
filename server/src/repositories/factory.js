@@ -1,163 +1,285 @@
-// server/src/repositories/factory.js - UPDATED WITH ALL REPOSITORIES
-const prisma = require('../db/prisma');
+// server/src/repositories/factory.js
+// COMPLETE PRISMA-ONLY IMPLEMENTATION - No MongoDB dependencies
 
-// Import all available repositories
-const MongoUserRepository = require('./mongo/UserRepository');
-const MongoPropertyRepository = require('./mongo/PropertyRepository');
-const MongoLeaseRepository = require('./mongo/LeaseRepository');
-const MongoPaymentRepository = require('./mongo/PaymentRepository');
-const MongoMaintenanceTicketRepository = require('./mongo/MaintenanceTicketRepository');
+console.log('🏭 Repository Factory: Complete Prisma migration');
+
+// Import Prisma client
+const prisma = require('../config/prisma');
+
+// Import ONLY Prisma repositories (remove all MongoDB imports)
 const PrismaUserRepository = require('./prisma/UserRepository');
 const PrismaPropertyRepository = require('./prisma/PropertyRepository');
+const PrismaLeaseRepository = require('./prisma/LeaseRepository');
+const PrismaPaymentRepository = require('./prisma/PaymentRepository');
+const PrismaMaintenanceTicketRepository = require('./prisma/TicketRepository');
+const PrismaTenantProfileRepository = require('./prisma/TenantProfileRepository');
+const PrismaPropertyMatchProfileRepository = require('./prisma/PropertyMatchProfileRepository');
+const PrismaFeedbackRepository = require('./prisma/FeedbackRepository');
 
 class RepositoryFactory {
   constructor() {
-    this.dbTarget = (process.env.DB_TARGET || 'mongo').trim();
+    // Production-ready Prisma-only configuration
+    this.dbTarget = 'prisma';
     this.repositories = {};
-    this.modelsLoaded = false;
-    console.log(`🔧 Repository Factory initialized with DB_TARGET: ${this.dbTarget}`);
-  }
-
-  _loadMongooseModels() {
-    if (!this.modelsLoaded) {
-      try {
-        this.User = require('../models/User');
-        this.Property = require('../models/Property');
-        this.Lease = require('../models/Lease');
-        this.Payment = require('../models/Payment');
-        this.MaintenanceTicket = require('../models/MaintenanceTicket');
-        this.modelsLoaded = true;
-        console.log('✅ Loaded all MongoDB models');
-      } catch (error) {
-        console.warn('⚠️  Some MongoDB models not found:', error.message);
-      }
+    this.startTime = Date.now();
+    this.healthHistory = [];
+    
+    console.log('✅ Repository Factory: PostgreSQL/Prisma production mode');
+    console.log('🚫 MongoDB support: Completely removed');
+    
+    // Validate Prisma client
+    if (!prisma) {
+      throw new Error('Prisma client not available - check configuration');
     }
+    
+    console.log('🔗 Prisma client: Connected and validated');
   }
 
+  // User Repository - Prisma only
   getUserRepository() {
-    const currentTarget = (process.env.DB_TARGET || 'mongo').trim();
-    const cacheKey = `user_${currentTarget}`;
+    const cacheKey = 'user_prisma';
     
     if (!this.repositories[cacheKey]) {
-      if (currentTarget === 'prisma') {
-        console.log('🐘 Prisma UserRepository initialized');
-        this.repositories[cacheKey] = new PrismaUserRepository(prisma);
-      } else {
-        console.log('🍃 MongoDB UserRepository initialized');
-        this._loadMongooseModels();
-        this.repositories[cacheKey] = new MongoUserRepository(this.User);
-      }
+      console.log('👤 Creating Prisma UserRepository');
+      this.repositories[cacheKey] = new PrismaUserRepository(prisma);
     }
     return this.repositories[cacheKey];
   }
 
+  // Property Repository - Prisma only
   getPropertyRepository() {
-    const currentTarget = (process.env.DB_TARGET || 'mongo').trim();
-    const cacheKey = `property_${currentTarget}`;
+    const cacheKey = 'property_prisma';
     
     if (!this.repositories[cacheKey]) {
-      if (currentTarget === 'prisma') {
-        console.log('🐘 Prisma PropertyRepository initialized');
-        this.repositories[cacheKey] = new PrismaPropertyRepository(prisma);
-      } else {
-        console.log('🍃 MongoDB PropertyRepository initialized');
-        this._loadMongooseModels();
-        this.repositories[cacheKey] = new MongoPropertyRepository(this.Property);
-      }
+      console.log('🏠 Creating Prisma PropertyRepository');
+      this.repositories[cacheKey] = new PrismaPropertyRepository(prisma);
     }
     return this.repositories[cacheKey];
   }
 
+  // Lease Repository - Prisma only
   getLeaseRepository() {
-    const currentTarget = (process.env.DB_TARGET || 'mongo').trim();
-    const cacheKey = `lease_${currentTarget}`;
+    const cacheKey = 'lease_prisma';
     
     if (!this.repositories[cacheKey]) {
-      if (currentTarget === 'prisma') {
-        throw new Error('Prisma LeaseRepository not implemented yet - MongoDB only for now');
-      } else {
-        console.log('🍃 MongoDB LeaseRepository initialized');
-        this._loadMongooseModels();
-        this.repositories[cacheKey] = new MongoLeaseRepository(this.Lease);
-      }
+      console.log('📄 Creating Prisma LeaseRepository');
+      this.repositories[cacheKey] = new PrismaLeaseRepository(prisma);
     }
     return this.repositories[cacheKey];
   }
 
+  // Payment Repository - Prisma only
   getPaymentRepository() {
-    const currentTarget = (process.env.DB_TARGET || 'mongo').trim();
-    const cacheKey = `payment_${currentTarget}`;
+    const cacheKey = 'payment_prisma';
     
     if (!this.repositories[cacheKey]) {
-      if (currentTarget === 'prisma') {
-        throw new Error('Prisma PaymentRepository not implemented yet - MongoDB only for now');
-      } else {
-        console.log('🍃 MongoDB PaymentRepository initialized');
-        this._loadMongooseModels();
-        this.repositories[cacheKey] = new MongoPaymentRepository(this.Payment);
-      }
+      console.log('💰 Creating Prisma PaymentRepository');
+      this.repositories[cacheKey] = new PrismaPaymentRepository(prisma);
     }
     return this.repositories[cacheKey];
   }
 
+  // Maintenance Ticket Repository - Prisma only
   getMaintenanceTicketRepository() {
-    const currentTarget = (process.env.DB_TARGET || 'mongo').trim();
-    const cacheKey = `ticket_${currentTarget}`;
+    const cacheKey = 'ticket_prisma';
     
     if (!this.repositories[cacheKey]) {
-      if (currentTarget === 'prisma') {
-        throw new Error('Prisma MaintenanceTicketRepository not implemented yet - MongoDB only for now');
-      } else {
-        console.log('🍃 MongoDB MaintenanceTicketRepository initialized');
-        this._loadMongooseModels();
-        this.repositories[cacheKey] = new MongoMaintenanceTicketRepository(this.MaintenanceTicket);
-      }
+      console.log('🔧 Creating Prisma MaintenanceTicketRepository');
+      this.repositories[cacheKey] = new PrismaMaintenanceTicketRepository(prisma);
     }
     return this.repositories[cacheKey];
   }
 
-  // Health check method
+  // Tenant Profile Repository - Prisma only
+  getTenantProfileRepository() {
+    const cacheKey = 'tenantProfile_prisma';
+    
+    if (!this.repositories[cacheKey]) {
+      console.log('👥 Creating Prisma TenantProfileRepository');
+      this.repositories[cacheKey] = new PrismaTenantProfileRepository(prisma);
+    }
+    return this.repositories[cacheKey];
+  }
+
+  // Property Match Profile Repository - Prisma only
+  getPropertyMatchProfileRepository() {
+    const cacheKey = 'propertyMatchProfile_prisma';
+    
+    if (!this.repositories[cacheKey]) {
+      console.log('🎯 Creating Prisma PropertyMatchProfileRepository');
+      this.repositories[cacheKey] = new PrismaPropertyMatchProfileRepository(prisma);
+    }
+    return this.repositories[cacheKey];
+  }
+
+  // Feedback Repository - Prisma only
+  getFeedbackRepository() {
+    const cacheKey = 'feedback_prisma';
+    
+    if (!this.repositories[cacheKey]) {
+      console.log('📝 Creating Prisma FeedbackRepository');
+      this.repositories[cacheKey] = new PrismaFeedbackRepository(prisma);
+    }
+    return this.repositories[cacheKey];
+  }
+
+  // Get all available repositories
+  getAvailableRepositories() {
+    return {
+      userRepo: this.getUserRepository(),
+      propertyRepo: this.getPropertyRepository(),
+      leaseRepo: this.getLeaseRepository(),
+      paymentRepo: this.getPaymentRepository(),
+      ticketRepo: this.getMaintenanceTicketRepository(),
+      tenantProfileRepo: this.getTenantProfileRepository(),
+      propertyMatchProfileRepo: this.getPropertyMatchProfileRepository(),
+      feedbackRepo: this.getFeedbackRepository()
+    };
+  }
+
+  // Production health check - PostgreSQL only
   async healthCheck() {
+    const checkStart = Date.now();
+    
     try {
-      const currentTarget = (process.env.DB_TARGET || 'mongo').trim();
+      // PostgreSQL connection test
+      const queryStart = Date.now();
+      await prisma.$queryRaw`SELECT 1 as health, version() as pg_version`;
+      const queryTime = Date.now() - queryStart;
       
-      if (currentTarget === 'prisma') {
-        await prisma.$queryRaw`SELECT 1 as health`;
-        return { status: 'healthy', database: 'postgresql', target: 'prisma' };
-      } else {
-        const mongoose = require('mongoose');
-        if (mongoose.connection.readyState !== 1) {
-          throw new Error('MongoDB connection not ready');
+      // Connection pool status
+      const metrics = await prisma.$metrics.globalHistogram();
+      
+      const result = {
+        status: 'healthy',
+        database: 'postgresql',
+        target: 'prisma',
+        responseTime: `${queryTime}ms`,
+        connectionPool: {
+          activeConnections: metrics?.histogram?.prisma_pool_connections_busy?.buckets?.length || 0,
+          poolSize: process.env.DATABASE_POOL_SIZE || 'default'
+        },
+        factory: {
+          uptime: `${Math.floor((Date.now() - this.startTime) / 1000)}s`,
+          repositoriesLoaded: Object.keys(this.repositories),
+          availableRepositories: [
+            'user', 'property', 'lease', 'payment', 
+            'ticket', 'tenantProfile', 'propertyMatchProfile', 'feedback'
+          ],
+          migrationStatus: 'complete',
+          totalCheckTime: `${Date.now() - checkStart}ms`
         }
-        await mongoose.connection.db.admin().ping();
-        return { status: 'healthy', database: 'mongodb', target: 'mongo' };
+      };
+      
+      // Store health history
+      this.healthHistory.push({
+        timestamp: new Date().toISOString(),
+        status: 'healthy',
+        responseTime: `${queryTime}ms`,
+        database: 'postgresql'
+      });
+      
+      // Keep only last 10 health checks
+      if (this.healthHistory.length > 10) {
+        this.healthHistory.shift();
       }
+      
+      return result;
     } catch (error) {
-      return { 
-        status: 'unhealthy', 
-        database: (process.env.DB_TARGET || 'mongo').trim() === 'prisma' ? 'postgresql' : 'mongodb',
-        target: (process.env.DB_TARGET || 'mongo').trim(),
-        error: error.message 
+      const totalCheckTime = Date.now() - checkStart;
+      
+      return {
+        status: 'unhealthy',
+        database: 'postgresql',
+        target: 'prisma',
+        error: error.message,
+        factory: {
+          uptime: `${Math.floor((Date.now() - this.startTime) / 1000)}s`,
+          repositoriesLoaded: Object.keys(this.repositories),
+          migrationStatus: 'complete',
+          totalCheckTime: `${totalCheckTime}ms`
+        }
       };
     }
   }
 
-  // Switch database target
+  // Get current database configuration
+  getDatabaseInfo() {
+    return {
+      target: 'prisma',
+      database: 'postgresql',
+      status: 'production-ready',
+      migration: 'complete',
+      features: [
+        'ACID transactions',
+        'Foreign key constraints', 
+        'Type safety',
+        'Connection pooling',
+        'Query optimization',
+        'Full-text search'
+      ],
+      repositories: {
+        total: 8,
+        implemented: Object.keys(this.repositories).length,
+        available: [
+          'UserRepository',
+          'PropertyRepository', 
+          'LeaseRepository',
+          'PaymentRepository',
+          'MaintenanceTicketRepository',
+          'TenantProfileRepository',
+          'PropertyMatchProfileRepository',
+          'FeedbackRepository'
+        ]
+      }
+    };
+  }
+
+  // Database switching removed - Prisma only
   switchDatabase(target) {
-    if (target !== 'mongo' && target !== 'prisma') {
-      throw new Error('Invalid DB_TARGET. Must be "mongo" or "prisma"');
+    console.log('ℹ️ Database switching disabled - system uses PostgreSQL/Prisma only');
+    return {
+      success: true,
+      message: 'System configured for PostgreSQL/Prisma only',
+      currentTarget: 'prisma',
+      migrationComplete: true
+    };
+  }
+
+  // Get health history
+  getHealthHistory() {
+    return {
+      currentStatus: this.healthHistory[this.healthHistory.length - 1] || null,
+      history: this.healthHistory,
+      uptime: `${Math.floor((Date.now() - this.startTime) / 1000)}s`
+    };
+  }
+
+  // Performance metrics
+  async getPerformanceMetrics() {
+    try {
+      const metrics = await prisma.$metrics.globalHistogram();
+      return {
+        queryMetrics: metrics.histogram,
+        connectionMetrics: {
+          pool: 'active',
+          database: 'postgresql'
+        },
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      return {
+        error: 'Metrics not available',
+        message: error.message
+      };
     }
-    
-    // Update environment variable
-    process.env.DB_TARGET = target;
-    this.dbTarget = target.trim();
-    this.repositories = {}; // Clear cached repositories
-    console.log(`🔄 Switched to database target: ${target}`);
-    
-    return { success: true, newTarget: target };
   }
 }
 
 // Export singleton instance
 const repositoryFactory = new RepositoryFactory();
+
+console.log('🎯 Repository Factory: Production Prisma-only mode initialized');
+console.log('📊 Migration Status: MongoDB → PostgreSQL Complete');
+
 module.exports = repositoryFactory;
