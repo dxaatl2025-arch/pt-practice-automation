@@ -36,7 +36,87 @@ class PrismaUserRepository extends IUserRepository {
       throw new Error(`Failed to create user: ${error.message}`);
     }
   }
-
+async findByFirebaseUid(firebaseUid) {
+  try {
+    console.log('🔍 Repository searching for Firebase UID:', firebaseUid);
+    
+    const user = await this.prisma.user.findUnique({
+      where: { firebaseUid },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+        phone: true,
+        firebaseUid: true,
+        createdAt: true,
+        updatedAt: true,
+        // Include new tenant profile fields if they exist
+        budgetMin: true,
+        budgetMax: true,
+        preferredBedrooms: true,
+        preferredLocations: true,
+        petPreferences: true,
+        profilePreferences: true
+      }
+    });
+    
+    if (user) {
+      console.log('✅ Repository found user:', user.email);
+    } else {
+      console.log('❌ Repository: User not found');
+    }
+    
+    return user;
+  } catch (error) {
+    console.error('❌ Repository error finding user by Firebase UID:', error);
+    throw error;
+  }
+}
+getCurrentUser = async (req, res) => {
+  try {
+    console.log('📋 Getting current user:', req.user?.email);
+    res.json({
+      success: true,
+      data: req.user
+    });
+  } catch (error) {
+    console.error('❌ Error getting current user:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+}
+updateCurrentUserProfile = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    console.log('💾 Updating profile for user:', req.user?.email, 'Data:', req.body);
+    
+    const updatedUser = await this.userRepo.update(userId, req.body);
+    
+    if (!updatedUser) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+    
+    console.log('✅ Profile updated successfully');
+    res.json({
+      success: true,
+      message: 'Profile updated successfully',
+      data: updatedUser
+    });
+  } catch (error) {
+    console.error('❌ Error updating profile:', error);
+    res.status(400).json({
+      success: false,
+      message: error.message
+    });
+  }
+}
   async findById(id) {
     try {
       return await this.prisma.user.findUnique({

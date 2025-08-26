@@ -8,15 +8,20 @@ class PropertyController {
   }
 
   // Create property - use arrow function to bind 'this'
-  createProperty = async (req, res) => {
-    try {
-      const propertyData = {
-        ...req.body,
-        landlord: req.user?.id // From auth middleware
-      };
+createProperty = async (req, res) => {
+  try {
+    // DEBUG: Check what authentication middleware provides
+    console.log('DEBUG: req.user =', req.user);
+    console.log('DEBUG: Authorization header present:', !!req.headers.authorization);
+    
+   const propertyData = {
+  ...req.body,
+  landlordId: req.user?.id  // Changed from req.user?.databaseId
+};
+    
+    console.log('DEBUG: landlordId being sent to Prisma =', propertyData.landlordId);
 
-      // Repository abstracts the database implementation
-      const property = await this.propertyRepo.create(propertyData);
+    const property = await this.propertyRepo.create(propertyData);
 
       // API response identical regardless of database
       res.status(201).json({

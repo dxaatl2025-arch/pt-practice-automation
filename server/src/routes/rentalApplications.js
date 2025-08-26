@@ -5,6 +5,9 @@ const RentalApplicationController = require('../controllers/rentalApplicationCon
 const { body, param, query, validationResult } = require('express-validator');
 const rateLimit = require('express-rate-limit');
 
+// Import authentication middleware
+const { authenticateUser, authorizeRoles } = require('../middleware/auth');
+
 // Rate limiting for application submissions
 const applicationSubmissionLimit = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -107,6 +110,8 @@ router.get('/health', (req, res) => {
  * @access  Private (landlords only)
  */
 router.get('/search',
+  authenticateUser,
+  authorizeRoles('LANDLORD', 'ADMIN'), // Add role-based authorization
   query('email').optional().isEmail().withMessage('Valid email format required'),
   query('status').optional().isIn(['pending', 'under_review', 'approved', 'rejected']),
   query('landlordId').optional().isInt().withMessage('Valid landlord ID required'),
@@ -125,6 +130,8 @@ router.get('/search',
  * @access  Private (landlords only)
  */
 router.get('/stats',
+  authenticateUser,
+  authorizeRoles('LANDLORD', 'ADMIN'), // Add role-based authorization
   query('landlordId').optional().isInt().withMessage('Valid landlord ID required'),
   handleValidationErrors,
   RentalApplicationController.getApplicationStats
@@ -143,11 +150,32 @@ router.post('/',
 );
 
 /**
+ * @route   GET /api/rental-applications
+ * @desc    Get applications with optional filters (role-based access)
+ * @access  Private (tenants see own, landlords see by property)
+ */
+router.get('/',
+  authenticateUser, // Add authentication middleware
+  // Add query parameter validation
+  query('applicantId').optional().isLength({ min: 1 }).withMessage('Valid applicant ID required'),
+  query('landlordId').optional().isInt().withMessage('Valid landlord ID required'),
+  query('propertyId').optional().isInt().withMessage('Valid property ID required'),
+  query('status').optional().isIn(['pending', 'under_review', 'approved', 'rejected']),
+  query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
+  query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('Limit must be between 1 and 100'),
+  query('search').optional().isString().isLength({ max: 255 }).withMessage('Search term too long'),
+  handleValidationErrors,
+  RentalApplicationController.listApplications
+);
+
+/**
  * @route   GET /api/rental-applications/landlord/:landlordId
  * @desc    Get all applications for a specific landlord
  * @access  Private (landlords only)
  */
 router.get('/landlord/:landlordId',
+  authenticateUser,
+  authorizeRoles('LANDLORD', 'ADMIN'), // Add role-based authorization
   param('landlordId').isInt().withMessage('Valid landlord ID is required'),
   query('status').optional().isIn(['pending', 'under_review', 'approved', 'rejected']),
   query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
@@ -162,6 +190,8 @@ router.get('/landlord/:landlordId',
  * @access  Private (landlords only)
  */
 router.post('/:id/ai-score',
+  authenticateUser,
+  authorizeRoles('LANDLORD', 'ADMIN'), // Add role-based authorization
   param('id').isInt().withMessage('Valid application ID is required'),
   handleValidationErrors,
   async (req, res) => {
@@ -191,6 +221,8 @@ router.post('/:id/ai-score',
  * @access  Private (landlords only)
  */
 router.get('/:id/pdf',
+  authenticateUser,
+  authorizeRoles('LANDLORD', 'ADMIN'), // Add role-based authorization
   param('id').isInt().withMessage('Valid application ID is required'),
   handleValidationErrors,
   RentalApplicationController.downloadApplicationPDF
@@ -202,6 +234,8 @@ router.get('/:id/pdf',
  * @access  Private (landlords only)
  */
 router.put('/:id/status',
+  authenticateUser,
+  authorizeRoles('LANDLORD', 'ADMIN'), // Add role-based authorization
   param('id').isInt().withMessage('Valid application ID is required'),
   body('status').isIn(['pending', 'under_review', 'approved', 'rejected'])
     .withMessage('Status must be one of: pending, under_review, approved, rejected'),
@@ -217,6 +251,7 @@ router.put('/:id/status',
  * @access  Public (for applicants) / Private (for landlords)
  */
 router.get('/:id',
+  authenticateUser, // Add authentication middleware
   param('id').notEmpty().withMessage('Application ID is required'),
   handleValidationErrors,
   RentalApplicationController.getApplication

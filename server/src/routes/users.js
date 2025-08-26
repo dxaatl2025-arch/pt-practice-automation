@@ -3,6 +3,7 @@ const express = require('express');
 const router = express.Router();
 const { body, param, query, validationResult } = require('express-validator');
 const userController = require('../controllers/userController');
+const { authenticateUser } = require('../middleware/auth'); // ADD THIS LINE
 
 // Middleware to handle validation errors
 const handleValidationErrors = (req, res, next) => {
@@ -16,7 +17,6 @@ const handleValidationErrors = (req, res, next) => {
   }
   next();
 };
-
 // @route   GET /api/users
 // @desc    Get all users with filtering and pagination
 // @access  Private (Admin)
@@ -30,10 +30,30 @@ router.get('/', [
 // @route   GET /api/users/:id
 // @desc    Get user by ID
 // @access  Private
+
+router.get('/me', authenticateUser, userController.getCurrentUser);
+
+// @route   PUT /api/users/profile  
+// @desc    Update current user profile
+// @access  Private
+router.put('/profile', [
+  authenticateUser,
+  body('budgetMin').optional().isInt({ min: 0 }).withMessage('Budget min must be a positive number'),
+  body('budgetMax').optional().isInt({ min: 0 }).withMessage('Budget max must be a positive number'),
+  body('preferredBedrooms').optional().isInt({ min: 0, max: 10 }).withMessage('Preferred bedrooms must be 0-10'),
+  body('preferredLocations').optional().isArray().withMessage('Preferred locations must be an array'),
+  handleValidationErrors
+], userController.updateCurrentUserProfile);
+
 router.get('/:id', [
   param('id').isLength({ min: 1 }).withMessage('User ID is required'),
   handleValidationErrors
 ], userController.getUser);
+
+router.get('/firebase/:firebaseUid', [
+  param('firebaseUid').notEmpty().withMessage('Firebase UID is required'),
+  handleValidationErrors
+], userController.getUserByFirebaseUid);
 
 // @route   POST /api/users
 // @desc    Create new user

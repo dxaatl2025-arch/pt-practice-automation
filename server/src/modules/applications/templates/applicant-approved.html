@@ -1,0 +1,71 @@
+<!-- server/src/modules/applications/templates/applicant-approved.html -->
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Application Approved</title>
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: #10b981; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+    .content { background: #f0fdf4; padding: 20px; border-radius: 0 0 8px 8px; }
+    .property-card { background: white; padding: 15px; margin: 15px 0; border-radius: 5px; border-left: 4px solid #10b981; }
+    .next-steps { background: white; padding: 15px; margin: 15px 0; border-radius: 5px; }
+    .footer { color: #666; font-size: 12px; text-align: center; margin: 20px 0; }
+    .emoji { font-size: 24px; }
+    @media only screen and (max-width: 600px) {
+      .container { padding: 10px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="emoji">🎉</div>
+      <h1>Congratulations!</h1>
+      <p>Your Application Has Been Approved</p>
+    </div>
+    
+    <div class="content">
+      <p>Dear <strong>{{applicantName}}</strong>,</p>
+      
+      <p>We're excited to inform you that your rental application has been <strong style="color: #10b981;">APPROVED</strong>!</p>
+      
+      <div class="property-card">
+        <h3>🏠 Your New Home</h3>
+        <p><strong>Property:</strong> {{propertyTitle}}</p>
+        <p><strong>Address:</strong> {{propertyAddress}}</p>
+        <p><strong>Monthly Rent:</strong> ${{monthlyRent}}</p>
+        <p><strong>Desired Move-in:</strong> {{desiredMoveIn}}</p>
+      </div>
+      
+      <div class="next-steps">
+        <h3>📋 Next Steps</h3>
+        <ol>
+          <li><strong>Lease Preparation:</strong> The landlord will prepare your lease agreement</li>
+          <li><strong>Contact Expected:</strong> You will be contacted within 1-2 business days</li>
+          <li><strong>Security Deposit:</strong> Please prepare your security deposit payment</li>
+          <li><strong>Move-in Coordination:</strong> Schedule your move-in inspection</li>
+        </ol>
+      </div>
+      
+      {{#if reviewNotes}}
+      <div style="background: white; padding: 15px; margin: 15px 0; border-radius: 5px; border-left: 4px solid #f59e0b;">
+        <h4>📝 Landlord Notes:</h4>
+        <p style="font-style: italic;">{{reviewNotes}}</p>
+      </div>
+      {{/if}}
+      
+      <p>Thank you for choosing PropertyPulse for your rental search. We're thrilled to help you find your new home!</p>
+      
+      <p><strong>Questions?</strong> Feel free to contact the property owner directly or reach out to our support team.</p>
+    </div>
+    
+    <div class="footer">
+      <p>© 2025 PropertyPulse - Professional Property Management</p>
+      <p>This is an automated message. Please do not reply to this email.</p>
+    </div>
+  </div>
+</body>
+</html>

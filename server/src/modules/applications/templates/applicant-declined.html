@@ -1,0 +1,74 @@
+<!-- server/src/modules/applications/templates/applicant-declined.html -->
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Application Decision</title>
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: #6b7280; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+    .content { background: #f9fafb; padding: 20px; border-radius: 0 0 8px 8px; }
+    .property-card { background: white; padding: 15px; margin: 15px 0; border-radius: 5px; border-left: 4px solid #6b7280; }
+    .encouragement { background: #eff6ff; padding: 15px; margin: 15px 0; border-radius: 5px; border: 1px solid #3b82f6; }
+    .footer { color: #666; font-size: 12px; text-align: center; margin: 20px 0; }
+    .action-button { background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block; margin: 10px 0; }
+    @media only screen and (max-width: 600px) {
+      .container { padding: 10px; }
+      .action-button { display: block; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Application Decision</h1>
+      <p>PropertyPulse Application System</p>
+    </div>
+    
+    <div class="content">
+      <p>Dear <strong>{{applicantName}}</strong>,</p>
+      
+      <p>Thank you for your interest in renting through PropertyPulse and for submitting your application.</p>
+      
+      <div class="property-card">
+        <h3>📍 Property Application</h3>
+        <p><strong>Property:</strong> {{propertyTitle}}</p>
+        <p><strong>Address:</strong> {{propertyAddress}}</p>
+        <p><strong>Application Date:</strong> {{submissionDate}}</p>
+      </div>
+      
+      <p>After careful consideration, the property owner has decided to move forward with another applicant for this property.</p>
+      
+      {{#if reviewNotes}}
+      <div style="background: white; padding: 15px; margin: 15px 0; border-radius: 5px; border-left: 4px solid #f59e0b;">
+        <h4>📝 Additional Notes:</h4>
+        <p style="font-style: italic;">{{reviewNotes}}</p>
+      </div>
+      {{/if}}
+      
+      <div class="encouragement">
+        <h3>🔍 Continue Your Search</h3>
+        <p>Don't let this discourage you! Finding the right rental is a process, and there are many great properties available.</p>
+        <ul>
+          <li>Your application information is saved for future applications</li>
+          <li>Continue browsing available properties on PropertyPulse</li>
+          <li>Consider expanding your search criteria or budget if possible</li>
+          <li>Apply quickly to properties that interest you</li>
+        </ul>
+        <a href="{{propertySearchUrl}}" class="action-button">Browse Available Properties</a>
+      </div>
+      
+      <p>We appreciate the time you took to apply and wish you the best of luck in finding your perfect home.</p>
+      
+      <p><strong>Questions about your application?</strong> Feel free to contact our support team.</p>
+    </div>
+    
+    <div class="footer">
+      <p>© 2025 PropertyPulse - Professional Property Management</p>
+      <p>This is an automated message. Please do not reply to this email.</p>
+    </div>
+  </div>
+</body>
+</html>

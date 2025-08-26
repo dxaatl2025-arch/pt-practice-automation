@@ -1,0 +1,69 @@
+model Application {
+  id            String   @id @default(cuid())
+  propertyId    String
+  
+  // Applicant info - UPDATED to match frontend
+  fullName      String    // changed from firstName/lastName
+  dob           DateTime  // changed from dateOfBirth
+  email         String
+  phone         String
+  
+  // Current address - UPDATED to match frontend
+  currentAddress    String    // single field instead of separate city/state/zip
+  yearsAtAddress    Float
+  reasonForMoving   String?
+  
+  // Employment - SAME field names
+  employerName      String
+  jobTitle          String
+  employerAddress   String
+  employerPhone     String
+  employmentLength  String
+  monthlyIncome     Int
+  otherIncome       String?  // changed to String
+  
+  // Rental history - SAME field names
+  prevAddress         String?
+  prevLandlordName    String?
+  prevLandlordContact String?
+  reasonForLeaving    String?
+  wasLateRent         Boolean @default(false)
+  
+  // Reference - SAME field names
+  refName         String
+  refRelationship String
+  refContact      String
+  
+  // Household - UPDATED to include new fields
+  occupants   Int
+  hasPets     Boolean? @default(false)  // NEW
+  pets        Json?
+  hasVehicles Boolean? @default(false)  // NEW
+  vehicles    Json?
+  
+  // Disclosures - SAME field names
+  wasEvicted  Boolean @default(false)
+  felony      Boolean @default(false)
+  
+  // Application details - SAME field names
+  desiredMoveIn     DateTime
+  consentBackground Boolean @default(false)
+  signature         String
+  signedAt          DateTime @default(now())
+  
+  // Status
+  status      ApplicationStatus @default(PENDING)
+  submittedAt DateTime         @default(now())
+  
+  // Relations
+  property Property @relation(fields: [propertyId], references: [id])
+  
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("applications")
+  @@index([propertyId])
+  @@index([status])
+  @@index([submittedAt])
+}

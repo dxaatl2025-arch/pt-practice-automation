@@ -69,6 +69,37 @@ class UserController {
       });
     }
   }
+ getUserByFirebaseUid = async (req, res) => {
+  try {
+    const { firebaseUid } = req.params;
+    
+    console.log('🔍 Looking for user with Firebase UID:', firebaseUid);
+    
+    // Use your existing repository pattern
+    const user = await this.userRepo.findByFirebaseUid(firebaseUid);
+    
+    if (!user) {
+      console.log('❌ User not found for Firebase UID:', firebaseUid);
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+    
+    console.log('✅ User found:', user.email, 'Role:', user.role);
+    
+    res.json({
+      success: true,
+      data: user
+    });
+  } catch (error) {
+    console.error('❌ Error in getUserByFirebaseUid:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+}
 
   // Create user - SAME API, different backend
   createUser = async (req, res) => {
@@ -134,6 +165,52 @@ class UserController {
       });
     }
   }
+  // Get current authenticated user
+getCurrentUser = async (req, res) => {
+  try {
+    console.log('📋 Getting current user:', req.user?.email);
+    res.json({
+      success: true,
+      data: req.user
+    });
+  } catch (error) {
+    console.error('❌ Error getting current user:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+}
+
+// Update current user profile
+updateCurrentUserProfile = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    console.log('💾 Updating profile for user:', req.user?.email, 'Data:', req.body);
+    
+    const updatedUser = await this.userRepo.update(userId, req.body);
+    
+    if (!updatedUser) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+    
+    console.log('✅ Profile updated successfully');
+    res.json({
+      success: true,
+      message: 'Profile updated successfully',
+      data: updatedUser
+    });
+  } catch (error) {
+    console.error('❌ Error updating profile:', error);
+    res.status(400).json({
+      success: false,
+      message: error.message
+    });
+  }
+}
 
   // Delete user
   deleteUser = async (req, res) => {

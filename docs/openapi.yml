@@ -1,0 +1,514 @@
+openapi: 3.0.0
+info:
+  title: PropertyPulse Matching Profiles API
+  description: Tenant-Property matching system with profiles and feedback
+  version: 1.0.0
+  contact:
+    name: PropertyPulse API
+    url: https://propertypulse.com
+
+servers:
+  - url: http://localhost:5000
+    description: Development server
+  - url: https://api.propertypulse.com
+    description: Production server
+
+security:
+  - bearerAuth: []
+
+paths:
+  /api/profiles/tenant:
+    get:
+      tags: [Tenant Profiles]
+      summary: Get current user's tenant profile
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: Tenant profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TenantProfileResponse'
+              example:
+                success: true
+                data:
+                  id: "cmebz8ltn0001u6zkgcqt9wwt"
+                  userId: "cmebz1cm80002u620h4gvm3j4"
+                  budgetMin: 1500
+                  budgetMax: 2500
+                  beds: 2
+                  pets: ["cat"]
+                  smoker: false
+                  locations: ["Atlanta", "Decatur"]
+                  mustHaves: ["parking", "gym"]
+                  user:
+                    firstName: "Test"
+                    lastName: "User"
+                    email: "test@example.com"
+        401:
+          $ref: '#/components/responses/Unauthorized'
+        404:
+          description: Profile not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      tags: [Tenant Profiles]
+      summary: Create or update tenant profile
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TenantProfileInput'
+            example:
+              budgetMin: 1500
+              budgetMax: 2500
+              beds: 2
+              pets: ["cat", "dog"]
+              smoker: false
+              locations: ["Atlanta", "Buckhead"]
+              mustHaves: ["parking", "gym"]
+              noGos: ["smoking"]
+      responses:
+        200:
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TenantProfileResponse'
+        400:
+          $ref: '#/components/responses/ValidationError'
+        401:
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/profiles/property/{propertyId}:
+    get:
+      tags: [Property Match Profiles]
+      summary: Get property match profile
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: propertyId
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "cme7ywwoj0000u664ypgowylc"
+      responses:
+        200:
+          description: Property match profile retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PropertyMatchProfileResponse'
+        401:
+          $ref: '#/components/responses/Unauthorized'
+        404:
+          description: Property or profile not found
+
+    put:
+      tags: [Property Match Profiles]
+      summary: Create or update property match profile
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: propertyId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PropertyMatchProfileInput'
+            example:
+              rent: 2200
+              beds: 2
+              baths: 2
+              petPolicy: "cats-allowed"
+              amenities: ["pool", "gym", "parking"]
+              parking: true
+              termMonths: 12
+      responses:
+        200:
+          description: Property match profile updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PropertyMatchProfileResponse'
+
+  /api/feedback:
+    post:
+      tags: [Feedback]
+      summary: Submit feedback about a user
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FeedbackInput'
+            example:
+              toUserId: "cmebz1cm80002u620h4gvm3j4"
+              thumbsUp: true
+              comment: "Great tenant, always paid on time"
+              leaseId: "cme7ywwp80003u664n9z0g9dp"
+      responses:
+        201:
+          description: Feedback submitted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedbackResponse'
+
+    get:
+      tags: [Feedback]
+      summary: Get feedback for a user
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: query
+          schema:
+            type: string
+          description: User ID to get feedback for (defaults to current user)
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+      responses:
+        200:
+          description: Feedback retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedbackListResponse'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    TenantProfileInput:
+      type: object
+      properties:
+        budgetMin:
+          type: integer
+          minimum: 0
+          example: 1500
+        budgetMax:
+          type: integer
+          minimum: 0
+          example: 2500
+        beds:
+          type: integer
+          minimum: 0
+          maximum: 10
+          example: 2
+        baths:
+          type: integer
+          minimum: 0
+          maximum: 10
+          example: 2
+        pets:
+          type: array
+          items:
+            type: string
+          example: ["cat", "dog"]
+        smoker:
+          type: boolean
+          example: false
+        locations:
+          type: array
+          items:
+            type: string
+          example: ["Atlanta", "Decatur"]
+        moveInStart:
+          type: string
+          format: date
+        moveInEnd:
+          type: string
+          format: date
+        workType:
+          type: string
+          example: "remote"
+        vehicle:
+          type: boolean
+          example: true
+        householdSize:
+          type: integer
+          minimum: 1
+          maximum: 20
+          example: 2
+        mustHaves:
+          type: array
+          items:
+            type: string
+          example: ["parking", "gym"]
+        noGos:
+          type: array
+          items:
+            type: string
+          example: ["smoking", "pets"]
+
+    TenantProfile:
+      allOf:
+        - $ref: '#/components/schemas/TenantProfileInput'
+        - type: object
+          required:
+            - id
+            - userId
+            - createdAt
+            - updatedAt
+          properties:
+            id:
+              type: string
+              example: "cmebz8ltn0001u6zkgcqt9wwt"
+            userId:
+              type: string
+              example: "cmebz1cm80002u620h4gvm3j4"
+            createdAt:
+              type: string
+              format: date-time
+              example: "2025-08-14T22:34:38.842Z"
+            updatedAt:
+              type: string
+              format: date-time
+              example: "2025-08-14T22:49:16.500Z"
+            user:
+              $ref: '#/components/schemas/UserSummary'
+
+    PropertyMatchProfileInput:
+      type: object
+      properties:
+        rent:
+          type: integer
+          minimum: 0
+          example: 2200
+        beds:
+          type: integer
+          minimum: 0
+          maximum: 10
+        baths:
+          type: integer
+          minimum: 0
+          maximum: 10
+        petPolicy:
+          type: string
+          enum: ["none", "cats", "dogs", "any"]
+          example: "cats-allowed"
+        amenities:
+          type: array
+          items:
+            type: string
+          example: ["pool", "gym", "parking"]
+        parking:
+          type: boolean
+          example: true
+        quietHours:
+          type: string
+          example: "10pm-8am"
+        locations:
+          type: array
+          items:
+            type: string
+        earliestMoveIn:
+          type: string
+          format: date
+        termMonths:
+          type: integer
+          minimum: 1
+          maximum: 36
+          example: 12
+        mustHaves:
+          type: array
+          items:
+            type: string
+        noGos:
+          type: array
+          items:
+            type: string
+
+    FeedbackInput:
+      type: object
+      required:
+        - toUserId
+        - thumbsUp
+      properties:
+        toUserId:
+          type: string
+          example: "cmebz1cm80002u620h4gvm3j4"
+        leaseId:
+          type: string
+          example: "cme7ywwp80003u664n9z0g9dp"
+        thumbsUp:
+          type: boolean
+          example: true
+        comment:
+          type: string
+          maxLength: 500
+          example: "Great tenant, always paid on time"
+
+    UserSummary:
+      type: object
+      properties:
+        id:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+
+    TenantProfileResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/TenantProfile'
+        message:
+          type: string
+          example: "Profile updated successfully"
+
+    PropertyMatchProfileResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          allOf:
+            - $ref: '#/components/schemas/PropertyMatchProfileInput'
+            - type: object
+              properties:
+                id:
+                  type: string
+                propertyId:
+                  type: string
+                createdAt:
+                  type: string
+                  format: date-time
+                updatedAt:
+                  type: string
+                  format: date-time
+
+    FeedbackResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            id:
+              type: string
+            fromUserId:
+              type: string
+            toUserId:
+              type: string
+            thumbsUp:
+              type: boolean
+            comment:
+              type: string
+            createdAt:
+              type: string
+              format: date-time
+
+    FeedbackListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/FeedbackResponse/properties/data'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+        totalPages:
+          type: integer
+        total:
+          type: integer
+        limit:
+          type: integer
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: "Error description"
+
+    ValidationErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: "Validation errors"
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+              msg:
+                type: string
+              path:
+                type: string
+              location:
+                type: string
+
+  responses:
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            message: "Access denied. No token provided."
+
+    ValidationError:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ValidationErrorResponse'

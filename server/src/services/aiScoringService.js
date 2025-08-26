@@ -1,5 +1,5 @@
 // server/src/services/aiScoringService.js
-const RentalApplication = require('../models/RentalApplication');
+const prisma = require('../config/prisma');
 
 class AIScoringService {
   constructor() {
@@ -14,7 +14,9 @@ class AIScoringService {
         return null;
       }
 
-      const application = await RentalApplication.findById(applicationId);
+     const application = await prisma.application.findUnique({
+  where: { id: applicationId }
+});
       if (!application) {
         throw new Error('Application not found');
       }
@@ -34,17 +36,18 @@ class AIScoringService {
       }
 
       // Update application with AI score
-      const updatedApplication = await RentalApplication.updateAIScore(
-        applicationId, 
-        score, 
-        breakdown
-      );
-
-      console.log(`AI scoring completed for application ${application.application_number}: ${score}/100`);
+const updatedApplication = await prisma.application.update({
+  where: { id: applicationId },
+  data: {
+    aiScore: score,
+    aiBreakdown: breakdown
+  }
+});
+    console.log(`AI scoring completed for application ${application.id}: ${score}/100`);
 
       return {
         applicationId,
-        applicationNumber: application.application_number,
+       applicationNumber: application.id,
         score,
         breakdown,
         timestamp: new Date().toISOString()
@@ -210,14 +213,17 @@ class AIScoringService {
   // Get scoring statistics
   async getScoringStats() {
     try {
-      const stats = await RentalApplication.getApplicationStats();
+      const stats = await prisma.application.aggregate({
+  _count: { id: true },
+  _avg: { aiScore: true }
+});
       
-      return {
-        total_scored: parseInt(stats.total_applications) || 0,
-        average_score: parseFloat(stats.avg_ai_score) || 0,
-        scoring_enabled: this.enabled,
-        mock_mode: this.mockMode
-      };
+return {
+  total_scored: stats._count.id || 0,
+  average_score: stats._avg.aiScore || 0,
+  scoring_enabled: this.enabled,
+  mock_mode: this.mockMode
+};
     } catch (error) {
       console.error('Error getting scoring stats:', error);
       return null;

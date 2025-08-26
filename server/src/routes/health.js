@@ -2,7 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const repositoryFactory = require('../repositories/factory');
-const mongoose = require('mongoose');
+const prisma = require('../config/prisma');
 
 // Simple health check cache (30 second TTL)
 let healthCache = {
@@ -16,95 +16,56 @@ class HealthService {
     this.startTime = Date.now();
   }
 
-  // Test MongoDB connection
-  async checkMongoDB() {
-    try {
-      const start = Date.now();
-      
-      // Check connection state
-      if (mongoose.connection.readyState !== 1) {
-        throw new Error('MongoDB connection not ready');
-      }
-
-      // Perform actual query
-      await mongoose.connection.db.admin().ping();
-      
-      return {
-        status: 'healthy',
-        database: 'mongodb',
-        responseTime: Date.now() - start,
-        connectionState: mongoose.connection.readyState,
-        host: mongoose.connection.host || 'localhost',
-        port: mongoose.connection.port || 27017
-      };
-    } catch (error) {
-      return {
-        status: 'unhealthy',
-        database: 'mongodb',
-        error: error.message,
-        connectionState: mongoose.connection.readyState
-      };
-    }
+  
+// Test PostgreSQL connection only (MongoDB removed)
+async checkDatabase() {
+  try {
+    const start = Date.now();
+    
+    // Perform health query
+    await prisma.$queryRaw`SELECT 1 as health`;
+    
+    return {
+      status: 'healthy',
+      database: 'postgresql',
+      responseTime: Date.now() - start,
+      client: 'prisma'
+    };
+  } catch (error) {
+    return {
+      status: 'unhealthy',
+      database: 'postgresql',
+      error: error.message,
+      client: 'prisma'
+    };
   }
-
-  // Test PostgreSQL connection
-  async checkPostgreSQL() {
-    try {
-      const start = Date.now();
-      
-      // Check if Prisma is available
-      let prisma;
-      try {
-        prisma = require('../db/prisma');
-      } catch (error) {
-        throw new Error('Prisma client not available');
-      }
-      
-      // Perform health query
-      await prisma.$queryRaw`SELECT 1 as health`;
-      
-      return {
-        status: 'healthy',
-        database: 'postgresql',
-        responseTime: Date.now() - start,
-        client: 'prisma'
-      };
-    } catch (error) {
-      return {
-        status: 'unhealthy',
-        database: 'postgresql',
-        error: error.message,
-        client: 'prisma'
-      };
-    }
-  }
-
+}
+    
   // Test repository factory
-  async checkRepositoryFactory() {
-    try {
-      const start = Date.now();
-      
-      // Test repository instantiation
-      const userRepo = repositoryFactory.getUserRepository();
-      const propertyRepo = repositoryFactory.getPropertyRepository();
-      
-      return {
-        status: 'healthy',
-        currentTarget: repositoryFactory.dbTarget,
-        responseTime: Date.now() - start,
-        repositories: {
-          user: !!userRepo,
-          property: !!propertyRepo
-        }
-      };
-    } catch (error) {
-      return {
-        status: 'unhealthy',
-        currentTarget: repositoryFactory.dbTarget,
-        error: error.message
-      };
-    }
+  // Test application functionality
+async checkApplication() {
+  try {
+    const start = Date.now();
+    
+    // Test basic database operations
+    const userCount = await prisma.user.count();
+    const propertyCount = await prisma.property.count();
+    
+    return {
+      status: 'healthy',
+      responseTime: Date.now() - start,
+      data: {
+        users: userCount,
+        properties: propertyCount
+      }
+    };
+  } catch (error) {
+    return {
+      status: 'unhealthy',
+      error: error.message
+    };
   }
+}
 
   // System metrics
   getSystemMetrics() {
@@ -137,50 +98,33 @@ class HealthService {
   }
 
   // Comprehensive health check
-  async performHealthCheck() {
-    const checkStart = Date.now();
-    
-    // Run all checks in parallel
-    const [mongoHealth, postgresHealth, factoryHealth] = await Promise.all([
-      this.checkMongoDB(),
-      this.checkPostgreSQL(),
-      this.checkRepositoryFactory()
-    ]);
+// Comprehensive health check
+async performHealthCheck() {
+  const checkStart = Date.now();
+  
+  // Run all checks in parallel
+  const [databaseHealth, applicationHealth] = await Promise.all([
+    this.checkDatabase(),
+    this.checkApplication()
+  ]);
 
-    // Determine overall health
-    const allHealthy = [mongoHealth, postgresHealth, factoryHealth]
-      .every(check => check.status === 'healthy');
+  // Determine overall health
+  const allHealthy = [databaseHealth, applicationHealth]
+    .every(check => check.status === 'healthy');
 
-    const canaryModeEnabled = process.env.CANARY_MODE === 'enabled';
-    const primaryDbHealthy = repositoryFactory.dbTarget === 'prisma' 
-      ? postgresHealth.status === 'healthy'
-      : mongoHealth.status === 'healthy';
-
-    return {
-      status: allHealthy ? 'healthy' : 'degraded',
-      timestamp: new Date().toISOString(),
-      responseTime: Date.now() - checkStart,
-      canary: {
-        enabled: canaryModeEnabled,
-        primaryDatabase: repositoryFactory.dbTarget,
-        primaryHealthy: primaryDbHealthy,
-        fallbackAvailable: process.env.ENABLE_MONGODB_FALLBACK === 'true'
-      },
-      databases: {
-        mongodb: mongoHealth,
-        postgresql: postgresHealth
-      },
-      services: {
-        repositoryFactory: factoryHealth
-      },
-      system: this.getSystemMetrics(),
-      environment: {
-        nodeEnv: process.env.NODE_ENV,
-        dbTarget: process.env.DB_TARGET,
-        platform: 'windows'
-      }
-    };
-  }
+  return {
+    status: allHealthy ? 'healthy' : 'degraded',
+    timestamp: new Date().toISOString(),
+    responseTime: Date.now() - checkStart,
+    database: databaseHealth,
+    application: applicationHealth,
+    system: this.getSystemMetrics(),
+    environment: {
+      nodeEnv: process.env.NODE_ENV,
+      platform: 'postgresql-only'
+    }
+  };
+}
 }
 
 const healthService = new HealthService();
@@ -190,11 +134,11 @@ const healthService = new HealthService();
 // @access  Public
 router.get('/', async (req, res) => {
   try {
-    const health = await repositoryFactory.healthCheck();
+    await prisma.$queryRaw`SELECT 1 as health`;
     
-    res.status(health.status === 'healthy' ? 200 : 503).json({
-      status: health.status,
-      database: health.target,
+    res.status(200).json({
+      status: 'healthy',
+      database: 'postgresql',
       timestamp: new Date().toISOString()
     });
   } catch (error) {
@@ -240,56 +184,19 @@ router.get('/detailed', async (req, res) => {
   }
 });
 
-// @route   POST /health/switch-database
-// @desc    Switch database target (for canary management)
-// @access  Public (should be restricted in production)
-router.post('/switch-database', async (req, res) => {
-  try {
-    const { target } = req.body;
-    
-    if (!target || !['mongo', 'prisma'].includes(target)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid target. Must be "mongo" or "prisma"'
-      });
-    }
-
-    // Switch database
-    repositoryFactory.switchDatabase(target);
-    
-    // Verify health of new target
-    const health = await repositoryFactory.healthCheck();
-    
-    res.json({
-      success: true,
-      message: `Database switched to ${target}`,
-      health: health,
-      timestamp: new Date().toISOString()
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-      timestamp: new Date().toISOString()
-    });
-  }
-});
 
 // @route   GET /health/canary
 // @desc    Canary deployment status
 // @access  Public
 router.get('/canary', (req, res) => {
-  const canaryStatus = {
-    enabled: process.env.CANARY_MODE === 'enabled',
-    primaryDatabase: process.env.DB_TARGET || 'mongo',
-    fallbackEnabled: process.env.ENABLE_MONGODB_FALLBACK === 'true',
-    currentTarget: repositoryFactory.dbTarget,
+  const status = {
+    database: 'postgresql',
     environment: process.env.NODE_ENV,
-    platform: 'windows',
+    platform: 'postgresql-only',
     timestamp: new Date().toISOString()
   };
 
-  res.json(canaryStatus);
+  res.json(status);
 });
 
 module.exports = router; 

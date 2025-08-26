@@ -1,0 +1,282 @@
+// server/src/repositories/factory.js - Safe version with conditional imports
+// Import MongoDB repositories (always available)
+const MongoUserRepository = require('./mongo/UserRepository');
+const MongoPropertyRepository = require('./mongo/PropertyRepository');
+const MongoLeaseRepository = require('./mongo/LeaseRepository');
+const MongoPaymentRepository = require('./mongo/PaymentRepository');
+const MongoMaintenanceTicketRepository = require('./mongo/MaintenanceTicketRepository');
+
+// Conditionally import Prisma repositories only when needed
+let PrismaUserRepository, PrismaPropertyRepository, prisma;
+
+const loadPrismaRepositories = () => {
+  if (!PrismaUserRepository) {
+    try {
+      prisma = require('../db/prisma');
+      PrismaUserRepository = require('./prisma/UserRepository');
+      PrismaPropertyRepository = require('./prisma/PropertyRepository');
+      console.log('✅ Prisma repositories loaded');
+    } catch (error) {
+      console.warn('⚠️  Prisma repositories not available:', error.message);
+      throw error;
+    }
+  }
+};
+
+class RepositoryFactory {
+  constructor() {
+    this.dbTarget = (process.env.DB_TARGET || 'mongo').trim();
+    this.repositories = {};
+    this.modelsLoaded = false;
+    this.startTime = Date.now();
+    this.healthHistory = [];
+    this.fallbackMode = process.env.ENABLE_MONGODB_FALLBACK === 'true';
+    
+    console.log(`🔧 Repository Factory initialized with DB_TARGET: ${this.dbTarget}`);
+    console.log(`🔄 Fallback mode: ${this.fallbackMode ? 'ENABLED' : 'DISABLED'}`);
+  }
+
+  _loadMongooseModels() {
+    if (!this.modelsLoaded) {
+      try {
+        this.User = require('../models/User');
+        this.Property = require('../models/Property');
+        this.Lease = require('../models/Lease');
+        this.Payment = require('../models/Payment');
+        this.MaintenanceTicket = require('../models/MaintenanceTicket');
+        this.modelsLoaded = true;
+        console.log('✅ Loaded all MongoDB models');
+      } catch (error) {
+        console.warn('⚠️  Some MongoDB models not found:', error.message);
+      }
+    }
+  }
+
+  _createRepositoryWithFallback(repositoryType, currentTarget) {
+    try {
+      if (currentTarget === 'prisma') {
+        return this._createPrismaRepository(repositoryType);
+      } else {
+        return this._createMongoRepository(repositoryType);
+      }
+    } catch (error) {
+      console.error(`❌ Failed to create ${repositoryType} repository for ${currentTarget}:`, error.message);
+      
+      // Attempt fallback if enabled
+      if (this.fallbackMode && currentTarget === 'prisma') {
+        console.log(`🔄 Attempting MongoDB fallback for ${repositoryType}Repository`);
+        return this._createMongoRepository(repositoryType);
+      } else if (this.fallbackMode && currentTarget === 'mongo') {
+        console.log(`🔄 Attempting Prisma fallback for ${repositoryType}Repository`);
+        return this._createPrismaRepository(repositoryType);
+      }
+      
+      throw error;
+    }
+  }
+
+  _createPrismaRepository(repositoryType) {
+    // Load Prisma repositories only when needed
+    loadPrismaRepositories();
+    
+    switch (repositoryType) {
+      case 'user':
+        console.log('🐘 Prisma UserRepository initialized');
+        return new PrismaUserRepository(prisma);
+      case 'property':
+        console.log('🐘 Prisma PropertyRepository initialized');
+        return new PrismaPropertyRepository(prisma);
+      case 'lease':
+        throw new Error('Prisma LeaseRepository not implemented yet - MongoDB only for now');
+      case 'payment':
+        throw new Error('Prisma PaymentRepository not implemented yet - MongoDB only for now');
+      case 'ticket':
+        throw new Error('Prisma MaintenanceTicketRepository not implemented yet - MongoDB only for now');
+      default:
+        throw new Error(`Unknown repository type: ${repositoryType}`);
+    }
+  }
+
+  _createMongoRepository(repositoryType) {
+    this._loadMongooseModels();
+    
+    switch (repositoryType) {
+      case 'user':
+        console.log('🍃 MongoDB UserRepository initialized');
+        return new MongoUserRepository(this.User);
+      case 'property':
+        console.log('🍃 MongoDB PropertyRepository initialized');
+        return new MongoPropertyRepository(this.Property);
+      case 'lease':
+        console.log('🍃 MongoDB LeaseRepository initialized');
+        return new MongoLeaseRepository(this.Lease);
+      case 'payment':
+        console.log('🍃 MongoDB PaymentRepository initialized');
+        return new MongoPaymentRepository(this.Payment);
+      case 'ticket':
+        console.log('🍃 MongoDB MaintenanceTicketRepository initialized');
+        return new MongoMaintenanceTicketRepository(this.MaintenanceTicket);
+      default:
+        throw new Error(`Unknown repository type: ${repositoryType}`);
+    }
+  }
+
+  getUserRepository() {
+    const currentTarget = (process.env.DB_TARGET || 'mongo').trim();
+    const cacheKey = `user_${currentTarget}`;
+    
+    if (!this.repositories[cacheKey]) {
+      this.repositories[cacheKey] = this._createRepositoryWithFallback('user', currentTarget);
+    }
+    return this.repositories[cacheKey];
+  }
+
+  getPropertyRepository() {
+    const currentTarget = (process.env.DB_TARGET || 'mongo').trim();
+    const cacheKey = `property_${currentTarget}`;
+    
+    if (!this.repositories[cacheKey]) {
+      this.repositories[cacheKey] = this._createRepositoryWithFallback('property', currentTarget);
+    }
+    return this.repositories[cacheKey];
+  }
+
+  getLeaseRepository() {
+    const currentTarget = (process.env.DB_TARGET || 'mongo').trim();
+    const cacheKey = `lease_${currentTarget}`;
+    
+    if (!this.repositories[cacheKey]) {
+      this.repositories[cacheKey] = this._createRepositoryWithFallback('lease', currentTarget);
+    }
+    return this.repositories[cacheKey];
+  }
+
+  getPaymentRepository() {
+    const currentTarget = (process.env.DB_TARGET || 'mongo').trim();
+    const cacheKey = `payment_${currentTarget}`;
+    
+    if (!this.repositories[cacheKey]) {
+      this.repositories[cacheKey] = this._createRepositoryWithFallback('payment', currentTarget);
+    }
+    return this.repositories[cacheKey];
+  }
+
+  getMaintenanceTicketRepository() {
+    const currentTarget = (process.env.DB_TARGET || 'mongo').trim();
+    const cacheKey = `ticket_${currentTarget}`;
+    
+    if (!this.repositories[cacheKey]) {
+      this.repositories[cacheKey] = this._createRepositoryWithFallback('ticket', currentTarget);
+    }
+    return this.repositories[cacheKey];
+  }
+
+  // Enhanced health check
+  async healthCheck() {
+    const checkStart = Date.now();
+    const currentTarget = (process.env.DB_TARGET || 'mongo').trim();
+    
+    try {
+      let dbHealth = {};
+      
+      if (currentTarget === 'prisma') {
+        // PostgreSQL health check
+        loadPrismaRepositories();
+        const queryStart = Date.now();
+        await prisma.$queryRaw`SELECT 1 as health`;
+        const queryTime = Date.now() - queryStart;
+        
+        dbHealth = {
+          status: 'healthy',
+          database: 'postgresql',
+          target: 'prisma',
+          responseTime: `${queryTime}ms`
+        };
+      } else {
+        // MongoDB health check
+        const mongoose = require('mongoose');
+        if (mongoose.connection.readyState !== 1) {
+          throw new Error('MongoDB connection not ready');
+        }
+        
+        const queryStart = Date.now();
+        await mongoose.connection.db.admin().ping();
+        const queryTime = Date.now() - queryStart;
+        
+        dbHealth = {
+          status: 'healthy',
+          database: 'mongodb',
+          target: 'mongo',
+          responseTime: `${queryTime}ms`,
+          connectionState: mongoose.connection.readyState
+        };
+      }
+      
+      const totalCheckTime = Date.now() - checkStart;
+      const result = {
+        ...dbHealth,
+        factory: {
+          uptime: `${Math.floor((Date.now() - this.startTime) / 1000)}s`,
+          repositoriesLoaded: Object.keys(this.repositories),
+          availableRepositories: ['user', 'property', 'lease', 'payment', 'ticket'],
+          fallbackMode: this.fallbackMode,
+          totalCheckTime: `${totalCheckTime}ms`
+        }
+      };
+      
+      this.healthHistory.push({
+        timestamp: new Date().toISOString(),
+        status: 'healthy',
+        responseTime: dbHealth.responseTime,
+        database: dbHealth.database
+      });
+      
+      if (this.healthHistory.length > 10) {
+        this.healthHistory.shift();
+      }
+      
+      return result;
+    } catch (error) {
+      const totalCheckTime = Date.now() - checkStart;
+      const errorResult = {
+        status: 'unhealthy',
+        database: currentTarget === 'prisma' ? 'postgresql' : 'mongodb',
+        target: currentTarget,
+        error: error.message,
+        factory: {
+          uptime: `${Math.floor((Date.now() - this.startTime) / 1000)}s`,
+          repositoriesLoaded: Object.keys(this.repositories),
+          fallbackMode: this.fallbackMode,
+          totalCheckTime: `${totalCheckTime}ms`
+        }
+      };
+      
+      return errorResult;
+    }
+  }
+
+  // Switch database target
+  switchDatabase(target) {
+    if (target !== 'mongo' && target !== 'prisma') {
+      throw new Error('Invalid DB_TARGET. Must be "mongo" or "prisma"');
+    }
+    
+    const oldTarget = this.dbTarget;
+    process.env.DB_TARGET = target;
+    this.dbTarget = target.trim();
+    this.repositories = {};
+    
+    console.log(`🔄 Switched database target: ${oldTarget} → ${target}`);
+    
+    return { 
+      success: true, 
+      oldTarget, 
+      newTarget: target,
+      timestamp: new Date().toISOString()
+    };
+  }
+}
+
+// Export singleton instance
+const repositoryFactory = new RepositoryFactory();
+module.exports = repositoryFactory;

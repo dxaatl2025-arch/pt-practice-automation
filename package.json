@@ -11,7 +11,11 @@
     "install-client": "cd client && npm install",
     "install-server": "cd server && npm install",
     "install-all": "npm run install-server && npm run install-client",
-    "start": "cd server && npm start"
+    "start": "cd server && npm start",
+    "test:smoke": "jest tests/e2e/smoke-tests.js --testTimeout=15000",
+"backup": "scripts\\backup-database.bat",
+"health": "scripts\\health-check.bat",
+"setup:complete": "npm run health && npm run test:smoke"
   },
   "keywords": [
     "property-management",
@@ -34,6 +38,7 @@
     "axios": "^1.11.0",
     "express-rate-limit": "^8.0.1",
     "express-validator": "^7.2.1",
+    "helmet": "^8.1.0",
     "nodemailer": "^7.0.5",
     "pdfkit": "^0.17.1",
     "pg": "^8.16.3",

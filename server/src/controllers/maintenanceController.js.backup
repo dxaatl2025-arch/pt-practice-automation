@@ -1,0 +1,262 @@
+// src/repositories/prisma/TicketRepository.js
+const ITicketRepository = require('../interfaces/ITicketRepository');
+
+class PrismaTicketRepository extends ITicketRepository {
+  constructor(prismaClient) {
+    super();
+    this.prisma = prismaClient;
+    console.log('🐘 Prisma TicketRepository initialized');
+  }
+
+  async list(options = {}) {
+    const { filters = {}, skip = 0, limit = 10 } = options;
+    
+    // Build Prisma where clause
+    const where = {};
+    if (filters.propertyId) where.propertyId = filters.propertyId;
+    if (filters.tenantId) where.tenantId = filters.tenantId;
+    if (filters.status) where.status = filters.status;
+    if (filters.priority) where.priority = filters.priority;
+
+    const [tickets, total] = await Promise.all([
+      this.prisma.maintenanceTicket.findMany({
+        where,
+        include: {
+          property: {
+            select: {
+              id: true,
+              title: true,
+              addressStreet: true,
+              addressCity: true,
+              addressState: true
+            }
+          },
+          tenant: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+              phone: true
+            }
+          }
+        },
+        orderBy: { createdAt: 'desc' },
+        skip: parseInt(skip),
+        take: parseInt(limit)
+      }),
+      this.prisma.maintenanceTicket.count({ where })
+    ]);
+
+    return {
+      tickets,
+      total,
+      page: Math.floor(skip / limit) + 1,
+      totalPages: Math.ceil(total / limit)
+    };
+  }
+
+  async findById(id) {
+    return await this.prisma.maintenanceTicket.findUnique({
+      where: { id },
+      include: {
+        property: {
+          select: {
+            id: true,
+            title: true,
+            addressStreet: true,
+            addressCity: true,
+            addressState: true
+          }
+        },
+        tenant: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            phone: true
+          }
+        }
+      }
+    });
+  }
+
+  async create(data) {
+    return await this.prisma.maintenanceTicket.create({
+      data,
+      include: {
+        property: {
+          select: {
+            id: true,
+            title: true,
+            addressStreet: true,
+            addressCity: true,
+            addressState: true
+          }
+        },
+        tenant: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            phone: true
+          }
+        }
+      }
+    });
+  }
+
+  async update(id, data) {
+    try {
+      return await this.prisma.maintenanceTicket.update({
+        where: { id },
+        data,
+        include: {
+          property: {
+            select: {
+              id: true,
+              title: true,
+              addressStreet: true,
+              addressCity: true,
+              addressState: true
+            }
+          },
+          tenant: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+              phone: true
+            }
+          }
+        }
+      });
+    } catch (error) {
+      if (error.code === 'P2025') {
+        return null; // Record not found
+      }
+      throw error;
+    }
+  }
+
+  async delete(id) {
+    try {
+      await this.prisma.maintenanceTicket.delete({
+        where: { id }
+      });
+      return true;
+    } catch (error) {
+      if (error.code === 'P2025') {
+        return false; // Record not found
+      }
+      throw error;
+    }
+  }
+
+  async findByPropertyId(propertyId, options = {}) {
+    const { skip = 0, limit = 10 } = options;
+    return await this.prisma.maintenanceTicket.findMany({
+      where: { propertyId },
+      include: {
+        tenant: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            phone: true
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' },
+      skip: parseInt(skip),
+      take: parseInt(limit)
+    });
+  }
+
+  async findByTenantId(tenantId, options = {}) {
+    const { skip = 0, limit = 10 } = options;
+    return await this.prisma.maintenanceTicket.findMany({
+      where: { tenantId },
+      include: {
+        property: {
+          select: {
+            id: true,
+            title: true,
+            addressStreet: true,
+            addressCity: true,
+            addressState: true
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' },
+      skip: parseInt(skip),
+      take: parseInt(limit)
+    });
+  }
+
+  async findByStatus(status, options = {}) {
+    const { skip = 0, limit = 10 } = options;
+    return await this.prisma.maintenanceTicket.findMany({
+      where: { status },
+      include: {
+        property: {
+          select: {
+            id: true,
+            title: true,
+            addressStreet: true,
+            addressCity: true,
+            addressState: true
+          }
+        },
+        tenant: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            phone: true
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' },
+      skip: parseInt(skip),
+      take: parseInt(limit)
+    });
+  }
+
+  async findByPriority(priority, options = {}) {
+    const { skip = 0, limit = 10 } = options;
+    return await this.prisma.maintenanceTicket.findMany({
+      where: { priority },
+      include: {
+        property: {
+          select: {
+            id: true,
+            title: true,
+            addressStreet: true,
+            addressCity: true,
+            addressState: true
+          }
+        },
+        tenant: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            phone: true
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' },
+      skip: parseInt(skip),
+      take: parseInt(limit)
+    });
+  }
+}
+
+module.exports = PrismaTicketRepository;

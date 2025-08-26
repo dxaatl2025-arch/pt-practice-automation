@@ -1,10 +1,11 @@
 // server/src/repositories/prisma/TicketRepository.js
-class TicketRepository {
-  constructor(prismaClient) {
-    this.prisma = prismaClient;
-    console.log('🐘 Prisma TicketRepository initialized');
-  }
-
+const ITicketRepository = require('../interfaces/ITicketRepository');
+class PrismaMaintenanceTicketRepository extends ITicketRepository {
+constructor(prismaClient) {
+  super(); // Add this line first
+  this.prisma = prismaClient;
+  console.log('🐘 Prisma TicketRepository initialized');
+}
   async create(ticketData) {
     try {
       const ticket = await this.prisma.maintenanceTicket.create({
@@ -362,4 +363,4 @@ class TicketRepository {
   }
 }
 
-module.exports = TicketRepository;
+module.exports = PrismaMaintenanceTicketRepository;

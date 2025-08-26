@@ -1,0 +1,6 @@
+{
+  "address": "<script>alert('xss')</script>123 Test Street",
+  "city": "Atlanta",
+  "state": "GA",
+  "rent": 1500
+}

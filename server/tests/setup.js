@@ -1,5 +1,4 @@
-// tests/setup.js - SIMPLE VERSION
-require('dotenv').config();
-
-// Simple Jest timeout
-jest.setTimeout(30000);
+// tests/setup.js - Test environment setup 
+process.env.NODE_ENV = 'test'; 
+process.env.DB_TARGET = 'mongo'; 
+jest.setTimeout(15000); 

@@ -1,6 +1,6 @@
 // server/src/services/stripeService.js
 const stripe = require('../config/stripe');
-const PaymentIntegration = require('../models/PaymentIntegration');
+const prisma = require('../config/prisma');
 
 class StripeService {
   // Create Stripe Customer
@@ -10,16 +10,20 @@ class StripeService {
       if (process.env.NODE_ENV === 'development') {
         const mockCustomer = this.getMockCustomer();
         
-        await PaymentIntegration.findOneAndUpdate(
-          { userId: user._id },
-          {
-            userId: user._id,
-            userRole: user.role,
-            'stripe.customerId': mockCustomer.id,
-            'stripe.isVerified': true
-          },
-          { upsert: true, new: true }
-        );
+       await prisma.paymentIntegration.upsert({
+  where: { userId: user.id },
+  update: {
+    provider: 'STRIPE',
+    accountId: mockCustomer.id,
+    isActive: true
+  },
+  create: {
+    userId: user.id,
+    provider: 'STRIPE',
+    accountId: mockCustomer.id,
+    isActive: true
+  }
+});
 
         return mockCustomer;
       }
@@ -27,24 +31,27 @@ class StripeService {
       const customer = await stripe.customers.create({
         email: user.email,
         name: `${user.firstName} ${user.lastName}`,
-        metadata: {
-          userId: user._id.toString(),
-          role: user.role,
-          propertyPulseUser: 'true'
-        }
+       metadata: {
+  userId: user.id.toString(),
+  role: user.role,
+  propertyPulseUser: 'true'
+}
       });
 
-      await PaymentIntegration.findOneAndUpdate(
-        { userId: user._id },
-        {
-          userId: user._id,
-          userRole: user.role,
-          'stripe.customerId': customer.id,
-          'stripe.isVerified': true
-        },
-        { upsert: true, new: true }
-      );
-
+      await prisma.paymentIntegration.upsert({
+  where: { userId: user.id },
+  update: {
+    provider: 'STRIPE',
+    accountId: customer.id,
+    isActive: true
+  },
+  create: {
+    userId: user.id,
+    provider: 'STRIPE',
+    accountId: customer.id,
+    isActive: true
+  }
+});
       return customer;
     } catch (error) {
       console.error('Error creating Stripe customer:', error);

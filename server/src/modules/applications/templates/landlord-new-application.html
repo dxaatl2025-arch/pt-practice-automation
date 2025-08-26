@@ -1,0 +1,86 @@
+<!-- server/src/modules/applications/templates/landlord-new-application.html -->
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>New Application Received</title>
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: #2563eb; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+    .content { background: #f8f9fa; padding: 20px; border-radius: 0 0 8px 8px; }
+    .property-card { background: white; padding: 15px; margin: 15px 0; border-radius: 5px; border-left: 4px solid #2563eb; }
+    .applicant-summary { background: white; padding: 15px; margin: 15px 0; border-radius: 5px; }
+    .action-button { background: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block; margin: 10px 0; }
+    .footer { color: #666; font-size: 12px; text-align: center; margin-top: 20px; }
+    @media only screen and (max-width: 600px) {
+      .container { padding: 10px; }
+      .action-button { display: block; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>📧 New Application Received</h1>
+      <p>PropertyPulse Application System</p>
+    </div>
+    
+    <div class="content">
+      <p>Dear <strong>{{landlordName}}</strong>,</p>
+      
+      <p>You have received a new rental application for your property:</p>
+      
+      <div class="property-card">
+        <h3>🏠 {{propertyTitle}}</h3>
+        <p><strong>Address:</strong> {{propertyAddress}}</p>
+        <p><strong>Monthly Rent:</strong> ${{monthlyRent}}</p>
+        <p><strong>Application Date:</strong> {{submissionDate}}</p>
+      </div>
+      
+      <div class="applicant-summary">
+        <h3>👤 Applicant Summary</h3>
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="padding: 5px 0; border-bottom: 1px solid #eee;"><strong>Name:</strong></td>
+            <td style="padding: 5px 0; border-bottom: 1px solid #eee;">{{applicantName}}</td>
+          </tr>
+          <tr>
+            <td style="padding: 5px 0; border-bottom: 1px solid #eee;"><strong>Email:</strong></td>
+            <td style="padding: 5px 0; border-bottom: 1px solid #eee;">{{applicantEmail}}</td>
+          </tr>
+          <tr>
+            <td style="padding: 5px 0; border-bottom: 1px solid #eee;"><strong>Phone:</strong></td>
+            <td style="padding: 5px 0; border-bottom: 1px solid #eee;">{{applicantPhone}}</td>
+          </tr>
+          <tr>
+            <td style="padding: 5px 0; border-bottom: 1px solid #eee;"><strong>Monthly Income:</strong></td>
+            <td style="padding: 5px 0; border-bottom: 1px solid #eee;">${{monthlyIncome}}</td>
+          </tr>
+          <tr>
+            <td style="padding: 5px 0; border-bottom: 1px solid #eee;"><strong>Occupants:</strong></td>
+            <td style="padding: 5px 0; border-bottom: 1px solid #eee;">{{occupants}}</td>
+          </tr>
+          <tr>
+            <td style="padding: 5px 0;"><strong>Move-in Date:</strong></td>
+            <td style="padding: 5px 0;">{{desiredMoveIn}}</td>
+          </tr>
+        </table>
+      </div>
+      
+      <p>The complete application is attached as a PDF for your review.</p>
+      
+      <a href="{{dashboardUrl}}" class="action-button">Review Application</a>
+      
+      <p><small>Log in to your PropertyPulse dashboard to approve or decline this application.</small></p>
+    </div>
+    
+    <div class="footer">
+      <p>© 2025 PropertyPulse - Professional Property Management</p>
+      <p>This is an automated message. Please do not reply to this email.</p>
+    </div>
+  </div>
+</body>
+</html>
+

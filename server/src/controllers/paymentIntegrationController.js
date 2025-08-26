@@ -1,16 +1,16 @@
 // server/src/controllers/paymentIntegrationController.js
 const stripeService = require('../services/stripeService');
 const plaidService = require('../services/plaidService');
-const PaymentIntegration = require('../models/PaymentIntegration');
-const User = require('../models/User');
-const Payment = require('../models/Payment');
+const prisma = require('../config/prisma');
 
 class PaymentIntegrationController {
   // Setup Stripe customer
   async setupStripeCustomer(req, res) {
     try {
       const { userId } = req.params;
-      const user = await User.findById(userId);
+      const user = await prisma.user.findUnique({
+  where: { id: userId }
+});
       
       if (!user) {
         return res.status(404).json({ error: 'User not found' });
@@ -89,18 +89,20 @@ class PaymentIntegrationController {
         description
       } = req.body;
 
-      const payment = await Payment.findById(paymentId);
+      const payment = await prisma.payment.findUnique({
+  where: { id: paymentId }
+});
       if (!payment) {
         return res.status(404).json({ error: 'Payment not found' });
       }
 
       // Get payment integrations for tenant and landlord
-      const tenantIntegration = await PaymentIntegration.findOne({ 
-        userId: payment.tenant 
-      });
-      const landlordIntegration = await PaymentIntegration.findOne({ 
-        userId: payment.landlord 
-      });
+      const tenantIntegration = await prisma.paymentIntegration.findFirst({ 
+  where: { userId: payment.tenant }
+});
+const landlordIntegration = await prisma.paymentIntegration.findFirst({ 
+  where: { userId: payment.landlord }
+});
 
       if (!tenantIntegration || !landlordIntegration) {
         return res.status(400).json({ 
@@ -120,19 +122,15 @@ class PaymentIntegrationController {
       const platformFee = Math.round(amount * 0.029);
 
       // Update payment record using your existing schema structure
-      await Payment.findByIdAndUpdate(paymentId, {
-        status: paymentResult.status === 'succeeded' ? 'paid' : 'pending',
-        paidDate: paymentResult.status === 'succeeded' ? new Date() : null,
-        paymentMethod: paymentMethod === 'bank_account' ? 'ach' : 'credit_card',
-        'transactionDetails.stripePaymentIntentId': paymentResult.id,
-        'transactionDetails.stripeCustomerId': tenantIntegration.stripe.customerId,
-        'transactionDetails.processorId': 'stripe',
-        'transactionDetails.platformFeeAmount': platformFee,
-        'transactionDetails.netAmount': amount - platformFee,
-        'fees.processingFee': platformFee,
-        notes: `Payment processed via ${paymentMethod} - ${description || 'PropertyPulse automated payment'}`
-      });
-
+await prisma.payment.update({
+  where: { id: paymentId },
+  data: {
+    status: paymentResult.status === 'succeeded' ? 'PAID' : 'PENDING',
+    paidDate: paymentResult.status === 'succeeded' ? new Date() : null,
+    type: paymentMethod === 'bank_account' ? 'ACH' : 'CREDIT_CARD',
+    description: `Payment processed via ${paymentMethod} - ${description || 'PropertyPulse automated payment'}`
+  }
+});
       res.json({
         success: true,
         message: 'Payment processed successfully',
@@ -156,7 +154,9 @@ class PaymentIntegrationController {
   async getPaymentStatus(req, res) {
     try {
       const { userId } = req.params;
-      const integration = await PaymentIntegration.findOne({ userId });
+     const integration = await prisma.paymentIntegration.findFirst({
+  where: { userId }
+});
 
       if (!integration) {
         return res.json({

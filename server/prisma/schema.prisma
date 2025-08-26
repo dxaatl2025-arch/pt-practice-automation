@@ -1,4 +1,3 @@
-// server/prisma/schema.prisma - COMPLETE FILE
 generator client {
   provider = "prisma-client-js"
 }
@@ -9,232 +8,208 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  legacyId  String?  @unique  // ← ADD THIS LINE
-  email     String   @unique
-  password  String
-  firstName String?
-  lastName  String?
-  role      UserRole @default(TENANT)
-  phone     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
-  // Relations
-  properties         Property[] // This allows User to be a landlord
-  tenantLeases      Lease[] @relation("TenantLeases")
-  payments          Payment[]
-  maintenanceTickets MaintenanceTicket[]
-  rentalApplications RentalApplication[]
+  id                 String              @id @default(cuid())
+  email              String              @unique
+  password           String?
+  firstName          String?
+  lastName           String?
+  role               UserRole            @default(TENANT)
+  phone              String?
+  firebaseUid        String?             @unique
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  budgetMax          Int?
+  budgetMin          Int?
+  petPreferences     Json?
+  preferredBedrooms  Int?
+  preferredLocations String[]            @default([])
+  profilePreferences Json?
+  profileUpdatedAt   DateTime?
+  applications       Application[]       @relation("ApplicantApplications")
+  leases             Lease[]             @relation("TenantLeases")
+  maintenanceTickets MaintenanceTicket[] @relation("TenantTickets")
+  payments           Payment[]           @relation("TenantPayments")
+  properties         Property[]          @relation("LandlordProperties")
 
-  @@map("users")
   @@index([email])
+  @@index([firebaseUid])
+  @@index([role])
+  @@map("users")
 }
 
 model Property {
-  id          String   @id @default(cuid())
-  legacyId  String?  @unique  // ← ADD THIS LINE
-  
-  // Basic info
-  title       String
-  description String
-  propertyType PropertyType
-  
-  // Address (flattened from nested structure)
-  addressStreet  String
-  addressCity    String  
-  addressState   String
-  addressZip     String
-  addressCountry String @default("US")
-  
-  // Physical details
-  bedrooms    Int
-  bathrooms   Float
-  squareFeet  Int?
-  
-  // Financial (flattened from nested rent structure)
-  rentAmount   Float
-  rentCurrency String @default("USD")
-  rentPeriod   RentPeriod @default(MONTHLY)
-  deposit      Float @default(0)
-  
-  // Status and availability
-  status           PropertyStatus @default(ACTIVE)
-  isAvailable      Boolean @default(true)
-  availableFrom    DateTime?
-  availableTo      DateTime?
-  
-  // Additional data (stored as JSON to handle complex nested data)
-  amenities        Json? // Array of strings
-  images          Json? // Array of image objects  
-  utilities       Json? // Object with included/excluded arrays
-  petPolicy       Json? // Object with pet policy details
-  
-  // Location coordinates
-  latitude   Float?
-  longitude  Float?
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  // Relations
-  landlordId  String
-  landlord    User     @relation(fields: [landlordId], references: [id])
-  leases      Lease[]
-  maintenanceTickets MaintenanceTicket[]
-  rentalApplications RentalApplication[]
+  id                 String              @id @default(cuid())
+  title              String?
+  description        String?
+  bedrooms           Int?
+  bathrooms          Int?
+  squareFeet         Int?
+  rentAmount         Float?
+  rentCurrency       String              @default("USD")
+  deposit            Float               @default(0)
+  addressStreet      String?
+  addressCity        String?
+  addressState       String?
+  addressZip         String?
+  addressCountry     String              @default("US")
+  propertyType       PropertyType        @default(APARTMENT)
+  status             PropertyStatus      @default(ACTIVE)
+  isAvailable        Boolean             @default(true)
+  availableFrom      DateTime?
+  availableTo        DateTime?
+  amenities          Json?
+  images             Json?
+  petPolicy          String?
+  utilities          Json?
+  latitude           Float?
+  longitude          Float?
+  landlordId         String
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  applications       Application[]       @relation("PropertyApplications")
+  leases             Lease[]             @relation("PropertyLeases")
+  maintenanceTickets MaintenanceTicket[] @relation("PropertyTickets")
+  landlord           User                @relation("LandlordProperties", fields: [landlordId], references: [id])
 
-  @@map("properties")
   @@index([landlordId])
   @@index([status])
   @@index([isAvailable])
-  @@index([addressCity, addressState])
   @@index([propertyType])
-  @@index([rentAmount])
+  @@map("properties")
 }
 
 model Lease {
-  id          String   @id @default(cuid())
-  legacyId  String?  @unique  // ← ADD THIS LINE
-  startDate   DateTime
-  endDate     DateTime
-  monthlyRent Float
+  id              String      @id @default(cuid())
+  startDate       DateTime
+  endDate         DateTime
+  monthlyRent     Float
   securityDeposit Float?
-  status      LeaseStatus @default(ACTIVE)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  // Relations
-  propertyId  String
-  tenantId    String
-  property    Property @relation(fields: [propertyId], references: [id])
-  tenant      User     @relation("TenantLeases", fields: [tenantId], references: [id])
-  payments    Payment[]
+  status          LeaseStatus @default(ACTIVE)
+  terms           String?
+  notes           String?
+  propertyId      String
+  tenantId        String
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  property        Property    @relation("PropertyLeases", fields: [propertyId], references: [id])
+  tenant          User        @relation("TenantLeases", fields: [tenantId], references: [id])
+  payments        Payment[]   @relation("LeasePayments")
 
-  @@map("leases")
   @@index([propertyId])
   @@index([tenantId])
   @@index([status])
+  @@index([startDate])
+  @@index([endDate])
+  @@map("leases")
 }
 
 model Payment {
-  id          String   @id @default(cuid())
-  legacyId  String?  @unique  // ← ADD THIS LINE
+  id          String        @id @default(cuid())
   amount      Float
   dueDate     DateTime
   paidDate    DateTime?
   status      PaymentStatus @default(PENDING)
   type        PaymentType   @default(RENT)
   description String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  // Relations
-  leaseId     String
+  late        Boolean       @default(false)
+  lateFee     Float?
+  leaseId     String?
   tenantId    String
-  lease       Lease    @relation(fields: [leaseId], references: [id])
-  tenant      User     @relation(fields: [tenantId], references: [id])
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  lease       Lease?        @relation("LeasePayments", fields: [leaseId], references: [id])
+  tenant      User          @relation("TenantPayments", fields: [tenantId], references: [id])
 
-  @@map("payments")
   @@index([leaseId])
   @@index([tenantId])
   @@index([status])
   @@index([dueDate])
+  @@index([type])
+  @@map("payments")
 }
 
 model MaintenanceTicket {
-  id          String   @id @default(cuid())
-  legacyId  String?  @unique  // ← ADD THIS LINE
-  title       String
-  description String
-  priority    Priority @default(MEDIUM)
-  status      TicketStatus @default(OPEN)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  // Relations
-  propertyId  String
-  tenantId    String
-  property    Property @relation(fields: [propertyId], references: [id])
-  tenant      User     @relation(fields: [tenantId], references: [id])
+  id            String       @id @default(cuid())
+  title         String
+  description   String
+  priority      Priority     @default(MEDIUM)
+  status        TicketStatus @default(OPEN)
+  category      String?
+  estimatedCost Float?
+  actualCost    Float?
+  assignedTo    String?
+  completedAt   DateTime?
+  propertyId    String
+  tenantId      String
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  property      Property     @relation("PropertyTickets", fields: [propertyId], references: [id])
+  tenant        User         @relation("TenantTickets", fields: [tenantId], references: [id])
 
-  @@map("maintenance_tickets")
   @@index([propertyId])
   @@index([tenantId])
   @@index([status])
   @@index([priority])
+  @@index([assignedTo])
+  @@map("maintenance_tickets")
 }
 
-model RentalApplication {
-  id                    String   @id @default(cuid())
-  applicationNumber     String   @unique
-  
-  // Personal Information
-  firstName            String
-  lastName             String
-  email                String
-  phone                String
-  dateOfBirth          DateTime
-  socialSecurityNumber String
-  
-  // Current Address
-  currentAddress       String
-  currentCity          String
-  currentState         String
-  currentZip           String
-  currentRent          Float?
-  moveOutReason        String?
-  
-  // Employment
-  employer             String?
-  jobTitle             String?
-  employmentLength     String?
-  monthlyIncome        Float?
-  additionalIncome     Float?
-  
-  // References
-  previousLandlordName    String?
-  previousLandlordPhone   String?
-  emergencyContactName    String
-  emergencyContactPhone   String
-  emergencyContactRelation String
-  
-  // Background
-  hasEvictions         Boolean @default(false)
-  evictionDetails      String?
-  hasCriminalHistory   Boolean @default(false)
-  criminalDetails      String?
-  hasPets              Boolean @default(false)
-  petDetails           String?
-  smokingStatus        String?
-  
-  // Additional
-  additionalOccupants  String?
-  specialRequests      String?
-  
-  // Application Meta
-  signatureData        String?
-  signedAt            DateTime?
-  status              ApplicationStatus @default(PENDING)
-  aiScore             Float?
-  reviewNotes         String?
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
-  
-  // Relations
+model Application {
+  id                  String            @id @default(cuid())
   propertyId          String
   applicantId         String?
-  property            Property @relation(fields: [propertyId], references: [id])
-  applicant           User?    @relation(fields: [applicantId], references: [id])
+  firstName           String
+  lastName            String
+  email               String
+  phone               String
+  dateOfBirth         DateTime
+  currentAddress      String
+  currentCity         String
+  currentState        String
+  currentZip          String
+  yearsAtAddress      Float
+  reasonForMoving     String?
+  employerName        String
+  jobTitle            String
+  employerAddress     String
+  employerPhone       String
+  employmentLength    String
+  monthlyIncome       Float
+  otherIncome         Float?
+  prevAddress         String?
+  prevLandlordName    String?
+  prevLandlordContact String?
+  reasonForLeaving    String?
+  wasLateRent         Boolean           @default(false)
+  refName             String
+  refRelationship     String
+  refContact          String
+  occupants           Int
+  pets                Json?
+  vehicles            Json?
+  wasEvicted          Boolean           @default(false)
+  felony              Boolean           @default(false)
+  desiredMoveIn       DateTime
+  consentBackground   Boolean           @default(false)
+  signature           String
+  signedAt            DateTime
+  status              ApplicationStatus @default(PENDING)
+  submittedAt         DateTime          @default(now())
+  reviewedAt          DateTime?
+  reviewNotes         String?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  applicant           User?             @relation("ApplicantApplications", fields: [applicantId], references: [id])
+  property            Property          @relation("PropertyApplications", fields: [propertyId], references: [id])
 
-  @@map("rental_applications")
   @@index([propertyId])
   @@index([applicantId])
   @@index([status])
-  @@index([applicationNumber])
+  @@index([submittedAt])
+  @@index([email])
+  @@map("applications")
 }
 
-// Enums
 enum UserRole {
   ADMIN
   LANDLORD
@@ -248,20 +223,16 @@ enum PropertyType {
   CONDO
   TOWNHOUSE
   STUDIO
+  DUPLEX
   OTHER
-}
-
-enum RentPeriod {
-  DAILY
-  WEEKLY  
-  MONTHLY
 }
 
 enum PropertyStatus {
   ACTIVE
   INACTIVE
-  RENTED
   MAINTENANCE
+  OCCUPIED
+  PENDING
 }
 
 enum LeaseStatus {
@@ -269,6 +240,7 @@ enum LeaseStatus {
   EXPIRED
   TERMINATED
   PENDING
+  RENEWED
 }
 
 enum PaymentStatus {
@@ -276,6 +248,7 @@ enum PaymentStatus {
   PAID
   OVERDUE
   FAILED
+  CANCELLED
 }
 
 enum PaymentType {
@@ -283,6 +256,7 @@ enum PaymentType {
   SECURITY_DEPOSIT
   LATE_FEE
   MAINTENANCE
+  UTILITIES
   OTHER
 }
 
@@ -298,11 +272,12 @@ enum TicketStatus {
   IN_PROGRESS
   RESOLVED
   CLOSED
+  CANCELLED
 }
 
 enum ApplicationStatus {
   PENDING
   APPROVED
-  DENIED
+  DECLINED
   WITHDRAWN
 }

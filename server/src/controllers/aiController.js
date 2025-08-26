@@ -1,6 +1,6 @@
 // server/src/controllers/aiController.js
 const { generateLeaseAgreement } = require('../services/openaiService');
-const Property = require('../models/Property');
+const prisma = require('../config/prisma');
 
 const generateLease = async (req, res) => {
   try {
@@ -18,15 +18,17 @@ const generateLease = async (req, res) => {
     let propertyInfo = {};
     if (propertyId) {
       try {
-        const property = await Property.findById(propertyId);
-        if (property) {
-          propertyInfo = {
-            address: property.address,
-            type: property.type,
-            bedrooms: property.bedrooms,
-            bathrooms: property.bathrooms
-          };
-        }
+const property = await prisma.property.findUnique({
+  where: { id: propertyId }
+});
+if (property) {
+  propertyInfo = {
+    address: property.address,
+    type: property.type,
+    bedrooms: property.bedrooms,
+    bathrooms: property.bathrooms
+  };
+}
       } catch (error) {
         console.log('Property lookup failed, continuing without property info:', error.message);
       }
