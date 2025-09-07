@@ -1,3 +1,4 @@
+// server/src/modules/applications/repo/applicationsRepo.js
 console.log('🗄️ Applications repository loading...');
 
 // Import Prisma directly - bypass any factory issues
@@ -76,7 +77,8 @@ class ApplicationsRepository {
       if (status) where.status = status;
       if (search) {
         where.OR = [
-          { fullName: { contains: search, mode: 'insensitive' } },
+          { firstName: { contains: search, mode: 'insensitive' } },
+          { lastName: { contains: search, mode: 'insensitive' } },
           { email: { contains: search, mode: 'insensitive' } }
         ];
       }
@@ -88,7 +90,8 @@ class ApplicationsRepository {
         orderBy: { submittedAt: 'desc' },
         select: {
           id: true,
-          fullName: true,
+          firstName: true,
+          lastName: true,
           email: true,
           status: true,
           submittedAt: true,
@@ -101,6 +104,40 @@ class ApplicationsRepository {
       return result;
     } catch (error) {
       console.error('❌ List applications failed:', error);
+      throw error;
+    }
+  }
+
+  // ADD THIS METHOD - it was missing from your repo
+  async countByProperty(propertyId, status = null) {
+  console.log('🗄️ Repository: Counting applications for property:', propertyId);
+  
+  try {
+    const where = { propertyId };
+    if (status) where.status = status;
+
+    const count = await prisma.application.count({ where });
+    
+    console.log('✅ Applications count:', count);
+    return count;
+  } catch (error) {
+    console.error('❌ Count applications failed:', error);
+    throw error;
+  }
+}
+  async countByProperty(propertyId, status = null) {
+    console.log('🗄️ Repository: Counting applications for property:', propertyId);
+    
+    try {
+      const where = { propertyId };
+      if (status) where.status = status;
+
+      const count = await prisma.application.count({ where });
+      
+      console.log('✅ Applications count:', count);
+      return count;
+    } catch (error) {
+      console.error('❌ Count applications failed:', error);
       throw error;
     }
   }
@@ -146,7 +183,8 @@ class ApplicationsRepository {
         },
         select: {
           id: true,
-          fullName: true,
+          firstName: true,
+          lastName: true,
           email: true,
           status: true,
           submittedAt: true,
@@ -175,16 +213,21 @@ class ApplicationsRepository {
     try {
       const result = await prisma.application.findUnique({
         where: { id },
-       include: {
-  property: {
-    include: {
-      owner: {
-        select: { id: true, email: true, firstName: true, lastName: true }
-      }
-    }
-  }
-}
+        include: {
+          property: {
+            include: {
+              owner: {
+                select: { id: true, email: true, firstName: true, lastName: true }
+              }
+            }
+          }
+        }
       });
+      
+      // Transform to match expected structure (service expects .landlord)
+      if (result && result.property && result.property.owner) {
+        result.property.landlord = result.property.owner;
+      }
       
       console.log('✅ Application with landlord retrieved:', result ? 'found' : 'not found');
       return result;
