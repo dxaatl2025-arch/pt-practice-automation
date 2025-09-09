@@ -1,0 +1,120 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: propertypulse_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: |
+          package-lock.json
+          server/package-lock.json
+          client/package-lock.json
+    
+    - name: Install root dependencies
+      run: npm ci
+      
+    - name: Install server dependencies
+      run: cd server && npm ci
+      
+    - name: Install client dependencies  
+      run: cd client && npm ci
+
+    - name: Setup test database
+      run: cd server && npm run test:db:reset
+      env:
+        DATABASE_URL: postgresql://postgres:postgres@localhost:5432/propertypulse_test
+
+    - name: Run server tests
+      run: cd server && npm test
+      env:
+        NODE_ENV: test
+        DATABASE_URL: postgresql://postgres:postgres@localhost:5432/propertypulse_test
+        JWT_SECRET: test_jwt_secret_32_characters_long
+        
+    - name: Run client tests
+      run: cd client && npm test -- --coverage --watchAll=false
+      
+    - name: Build client
+      run: cd client && npm run build
+
+  deploy-staging:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop'
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: server/package-lock.json
+    
+    - name: Install server dependencies
+      run: cd server && npm ci --only=production
+      
+    - name: Run database migrations
+      run: cd server && npx prisma migrate deploy
+      env:
+        DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+        
+    - name: Deploy to staging
+      run: echo "Deploy to staging server here"
+      # Add your staging deployment commands here
+
+  deploy-production:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    environment: production
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: server/package-lock.json
+    
+    - name: Install server dependencies
+      run: cd server && npm ci --only=production
+      
+    - name: Run database migrations
+      run: cd server && npx prisma migrate deploy
+      env:
+        DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+        
+    - name: Deploy to production
+      run: echo "Deploy to production server here"
+      # Add your production deployment commands here

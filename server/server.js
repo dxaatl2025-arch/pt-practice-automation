@@ -104,15 +104,59 @@ if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
 
+// Stripe webhook endpoint (raw body required)
+if (process.env.STRIPE_CORE?.trim() === 'true') {
+  app.post('/api/webhooks/stripe', express.raw({ type: 'application/json' }), async (req, res) => {
+    try {
+      const { stripe } = require('./src/config/stripe');
+      const PaymentsService = require('./src/modules/payments/service/paymentsService');
+      
+      if (!stripe) {
+        return res.status(500).send('Stripe not configured');
+      }
+
+      const sig = req.headers['stripe-signature'];
+      const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+      if (!endpointSecret) {
+        console.error('❌ Stripe webhook secret not configured');
+        return res.status(500).send('Webhook secret not configured');
+      }
+
+      let event;
+      try {
+        event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
+      } catch (err) {
+        console.error('❌ Webhook signature verification failed:', err.message);
+        return res.status(400).send(`Webhook Error: ${err.message}`);
+      }
+
+      const paymentsService = new PaymentsService();
+      await paymentsService.handleStripeWebhook(event);
+
+      res.json({ received: true });
+    } catch (error) {
+      console.error('❌ Stripe webhook error:', error);
+      res.status(500).send('Webhook handler failed');
+    }
+  });
+  console.log('✅ Stripe webhook endpoint registered');
+}
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Canary deployment middleware
 app.use((req, res, next) => {
   req.startTime = Date.now();
-  res.setHeader('X-Database-Target', 'prisma');  // ← PRISMA ONLY
-  res.setHeader('X-Database-Type', 'postgresql');
-  res.setHeader('X-Canary-Mode', canaryConfig.mode ? 'enabled' : 'disabled');
+  
+  // Only expose database info in development
+  if (process.env.NODE_ENV === 'development') {
+    res.setHeader('X-Database-Target', 'prisma');
+    res.setHeader('X-Database-Type', 'postgresql');
+    res.setHeader('X-Canary-Mode', canaryConfig.mode ? 'enabled' : 'disabled');
+  }
+  
   next();
 });
 
@@ -165,7 +209,38 @@ app.use('/api/ai', require('./src/routes/ai'));
 app.use('/api/rental-applications', rentalApplicationRoutes);
 app.use('/health', healthRoutes);
 app.use('/api/payment-integration', paymentIntegrationRoutes);
-app.use('/api', require('./src/modules/applications/routes/applicationsRoutes'));
+// Applications routes (feature-flagged)
+if (String(process.env.APPLICATIONS_E2E).trim() === 'true') {
+  app.use('/api', require('./src/modules/applications/routes/applicationsRoutes'));
+  console.log('🧩 Applications routes mounted (APPLICATIONS_E2E=true)');
+} else {
+  console.log('🚫 Applications routes NOT mounted (APPLICATIONS_E2E=false)');
+}
+
+// Payments routes (feature-flagged)
+if (process.env.STRIPE_CORE?.trim() === 'true') {
+  console.log('💳 Loading payments routes...');
+  app.use('/api', require('./src/modules/payments/routes/paymentsRoutes'));
+  console.log('✅ Payments routes loaded');
+  console.log('📝 Payment endpoints available:');
+  console.log('   POST /api/payments/intent (tenant)');
+  console.log('   POST /api/payments/manual (landlord)');
+  console.log('   GET  /api/payments/:id (tenant/landlord)');
+  console.log('   POST /api/webhooks/stripe (public webhook)');
+} else {
+  console.log('⚠️ Payments module disabled - STRIPE_CORE is not "true"');
+}
+
+// S3 Uploads routes (feature-flagged)
+if (process.env.S3_UPLOADS?.trim() === 'true') {
+  console.log('📁 Loading S3 uploads routes...');
+  app.use('/api', require('./src/modules/uploads/routes/uploadsRoutes'));
+  console.log('✅ S3 uploads routes loaded');
+  console.log('📝 Upload endpoints available:');
+  console.log('   POST /api/uploads/signed-url (authenticated)');
+} else {
+  console.log('⚠️ S3 uploads module disabled - S3_UPLOADS is not "true"');
+}
 
 // Matching profiles routes (feature-flagged)
 if (process.env.MATCHING_PROFILES === 'true') {
@@ -175,6 +250,62 @@ if (process.env.MATCHING_PROFILES === 'true') {
   app.use('/api/feedback', require('./src/routes/feedback'));
   
   console.log('✅ Matching profile routes loaded');
+}
+
+// ===================================
+// BUSINESS MODULES (NEW)
+// ===================================
+
+// Owner Portal Features (Feature Flag)
+if (process.env.OWNER_PORTAL === 'true') {
+  app.use('/api/owners', require('./src/modules/owners/routes/ownersRoutes'));
+  console.log('✅ Owner portal routes loaded');
+  console.log('🏢 Owner endpoints available:');
+  console.log('   GET    /api/owners/:ownerId/portfolio');
+  console.log('   POST   /api/owners/:ownerId/reports');
+  console.log('   GET    /api/owners/:ownerId/reports/:reportId/download');
+} else {
+  console.log('⏭️  Owner portal disabled (OWNER_PORTAL=false)');
+}
+
+// Accounting Features (Feature Flag)
+if (process.env.ACCOUNTING === 'true') {
+  app.use('/api/accounting', require('./src/modules/accounting/routes/accountingRoutes'));
+  console.log('✅ Accounting routes loaded');
+  console.log('📊 Accounting endpoints available:');
+  console.log('   GET    /api/accounting/chart-of-accounts');
+  console.log('   POST   /api/accounting/chart-of-accounts');
+  console.log('   GET    /api/accounting/journal-entries');
+  console.log('   POST   /api/accounting/journal-entries');
+  console.log('   GET    /api/accounting/trial-balance');
+} else {
+  console.log('⏭️  Accounting disabled (ACCOUNTING=false)');
+}
+
+// Affiliate Portal Features (Feature Flag)
+if (process.env.AFFILIATE_PORTAL === 'true') {
+  app.use('/api/affiliates', require('./src/modules/affiliates/routes/affiliatesRoutes'));
+  console.log('✅ Affiliate portal routes loaded');
+  console.log('🤝 Affiliate endpoints available:');
+  console.log('   POST   /api/affiliates/signup');
+  console.log('   GET    /api/affiliates/dashboard');
+  console.log('   POST   /api/affiliates/links');
+} else {
+  console.log('⏭️  Affiliate portal disabled (AFFILIATE_PORTAL=false)');
+}
+
+// Pricing & Subscriptions Features (Feature Flag)
+if (process.env.PRICING === 'true') {
+  app.use('/api/pricing', require('./src/modules/pricing/routes/pricingRoutes'));
+  console.log('✅ Pricing routes loaded');
+  console.log('💳 Pricing endpoints available:');
+  console.log('   GET    /api/pricing/plans');
+  console.log('   GET    /api/pricing/subscription');
+  console.log('   POST   /api/pricing/subscribe');
+  console.log('   POST   /api/pricing/checkout');
+  console.log('   POST   /api/pricing/cancel');
+} else {
+  console.log('⏭️  Pricing disabled (PRICING=false)');
 }
 
 // ===================================
@@ -313,6 +444,19 @@ app.listen(PORT, () => {
     emailService.testConnection();
   } catch (error) {
     console.log('Email service not yet configured');
+  }
+
+  // Start reminders worker if enabled
+  if (process.env.REMINDERS?.trim() === 'true') {
+    try {
+      const { startRemindersWorker } = require('./src/modules/reminders/worker');
+      startRemindersWorker();
+      console.log('🔔 Reminders worker started');
+    } catch (error) {
+      console.error('❌ Failed to start reminders worker:', error);
+    }
+  } else {
+    console.log('⚠️ Reminders worker disabled - REMINDERS is not "true"');
   }
 });
 

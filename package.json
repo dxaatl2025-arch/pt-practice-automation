@@ -13,9 +13,14 @@
     "install-all": "npm run install-server && npm run install-client",
     "start": "cd server && npm start",
     "test:smoke": "jest tests/e2e/smoke-tests.js --testTimeout=15000",
-"backup": "scripts\\backup-database.bat",
-"health": "scripts\\health-check.bat",
-"setup:complete": "npm run health && npm run test:smoke"
+    "test:comprehensive": "cd server && npm run test:comprehensive",
+    "test:e2e": "playwright test",
+    "seed:test": "cd server && npm run seed:test",
+    "test:api": "cd server && npm run test:api",
+    "db:seed": "cd server && npm run db:seed",
+    "backup": "scripts\\backup-database.bat",
+    "health": "scripts\\health-check.bat",
+    "setup:complete": "npm run health && npm run test:smoke"
   },
   "keywords": [
     "property-management",
@@ -28,7 +33,14 @@
   "author": "Your Name",
   "license": "MIT",
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "@playwright/test": "^1.55.0",
+    "@types/node": "^24.3.1",
+    "concurrently": "^8.2.2",
+    "cross-env": "^10.0.0",
+    "supertest": "^7.1.4",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
   },
   "engines": {
     "node": ">=16.0.0",

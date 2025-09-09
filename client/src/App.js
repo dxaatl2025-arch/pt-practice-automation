@@ -1,6 +1,6 @@
 // src/App.js - Minimal Router Integration (Preserves All Existing Functionality)
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router } from 'react-router-dom'; // Add this import
+import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { useRequireAuth } from './hooks/useRequireAuth';
 import axios from 'axios';
@@ -15,8 +15,386 @@ import UserProfile from './pages/UserProfile';
 import ApplicationForm from './pages/ApplicationForm/index.js';
 import PropertyApplications from './pages/PropertyApplications/index.js';
 import TenantProfile from './components/TenantProfile';
+import AIFeatures from './pages/AIFeatures.jsx';
+
+// Import API client and components
+import { tenantsApi, handleApiError } from './lib/api';
+import EmptyState from './components/shared/EmptyState';
 
 const API_URL = 'http://localhost:5000/api';
+
+// Tenant Management Component
+const TenantManagementView = ({ tenants, onRefresh, user }) => {
+  const [showAddModal, setShowAddModal] = React.useState(false);
+  const [editingTenant, setEditingTenant] = React.useState(null);
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState(null);
+  
+  const [newTenant, setNewTenant] = React.useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    propertyId: ''
+  });
+
+  const handleCreateTenant = async () => {
+    if (!newTenant.firstName || !newTenant.lastName || !newTenant.email) {
+      setError('Please fill in all required fields');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+      await tenantsApi.create(newTenant);
+      setShowAddModal(false);
+      setNewTenant({ firstName: '', lastName: '', email: '', phone: '', propertyId: '' });
+      onRefresh();
+    } catch (error) {
+      setError(handleApiError(error));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteTenant = async (tenantId) => {
+    if (!window.confirm('Are you sure you want to remove this tenant?')) return;
+    
+    try {
+      setLoading(true);
+      await tenantsApi.delete(tenantId);
+      onRefresh();
+    } catch (error) {
+      setError(handleApiError(error));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+        <h2 style={{ fontSize: '32px', fontWeight: 'bold', color: '#1f2937' }}>
+          👥 Tenant Management
+        </h2>
+        <button
+          onClick={() => setShowAddModal(true)}
+          style={{
+            backgroundColor: '#2563eb',
+            color: 'white',
+            padding: '12px 24px',
+            borderRadius: '8px',
+            border: 'none',
+            cursor: 'pointer',
+            fontWeight: '500',
+            fontSize: '14px'
+          }}
+        >
+          + Add Tenant
+        </button>
+      </div>
+
+      {error && (
+        <div style={{
+          backgroundColor: '#fee2e2',
+          color: '#dc2626',
+          padding: '12px 16px',
+          borderRadius: '8px',
+          marginBottom: '24px',
+          border: '1px solid #fecaca'
+        }}>
+          {error}
+          <button
+            onClick={() => setError(null)}
+            style={{
+              float: 'right',
+              background: 'none',
+              border: 'none',
+              color: '#dc2626',
+              cursor: 'pointer',
+              fontSize: '18px'
+            }}
+          >
+            ×
+          </button>
+        </div>
+      )}
+
+      {tenants.length === 0 ? (
+        <EmptyState
+          icon="👥"
+          title="No Tenants Yet"
+          description="Start by adding your first tenant to manage their information and rental agreements."
+          actionText="Add First Tenant"
+          onAction={() => setShowAddModal(true)}
+        />
+      ) : (
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: '12px',
+          overflow: 'hidden',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+          border: '1px solid #e5e7eb'
+        }}>
+          <div style={{
+            padding: '20px',
+            borderBottom: '1px solid #e5e7eb',
+            backgroundColor: '#f9fafb'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <span style={{
+                backgroundColor: '#ede9fe',
+                color: '#5b21b6',
+                padding: '6px 12px',
+                borderRadius: '20px',
+                fontSize: '14px',
+                fontWeight: '500'
+              }}>
+                {tenants.length} Total Tenants
+              </span>
+              <span style={{ color: '#6b7280', fontSize: '14px' }}>
+                Manage tenant information and communications
+              </span>
+            </div>
+          </div>
+          
+          <div>
+            {tenants.map((tenant) => (
+              <div
+                key={tenant.id}
+                style={{
+                  padding: '20px',
+                  borderBottom: '1px solid #f3f4f6',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}
+              >
+                <div>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    marginBottom: '8px'
+                  }}>
+                    <div style={{
+                      width: '40px',
+                      height: '40px',
+                      backgroundColor: '#dbeafe',
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#2563eb',
+                      fontWeight: '600'
+                    }}>
+                      {(tenant.firstName?.charAt(0) || 'T').toUpperCase()}
+                    </div>
+                    <div>
+                      <h3 style={{
+                        fontSize: '16px',
+                        fontWeight: '600',
+                        color: '#1f2937',
+                        margin: 0
+                      }}>
+                        {tenant.firstName} {tenant.lastName}
+                      </h3>
+                      <p style={{
+                        color: '#6b7280',
+                        fontSize: '14px',
+                        margin: '2px 0 0 0'
+                      }}>
+                        {tenant.email}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {tenant.phone && (
+                    <p style={{
+                      color: '#6b7280',
+                      fontSize: '14px',
+                      margin: '4px 0 0 52px'
+                    }}>
+                      📞 {tenant.phone}
+                    </p>
+                  )}
+                </div>
+                
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    onClick={() => setEditingTenant(tenant)}
+                    style={{
+                      backgroundColor: 'transparent',
+                      color: '#6b7280',
+                      border: '1px solid #d1d5db',
+                      padding: '6px 12px',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontSize: '12px'
+                    }}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => handleDeleteTenant(tenant.id)}
+                    style={{
+                      backgroundColor: 'transparent',
+                      color: '#dc2626',
+                      border: '1px solid #fecaca',
+                      padding: '6px 12px',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontSize: '12px'
+                    }}
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Add Tenant Modal */}
+      {showAddModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '12px',
+            padding: '24px',
+            width: '400px',
+            maxWidth: '90vw'
+          }}>
+            <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '20px' }}>
+              Add New Tenant
+            </h3>
+            
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', color: '#374151' }}>
+                First Name *
+              </label>
+              <input
+                type="text"
+                value={newTenant.firstName}
+                onChange={(e) => setNewTenant({...newTenant, firstName: e.target.value})}
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '6px',
+                  fontSize: '14px'
+                }}
+              />
+            </div>
+            
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', color: '#374151' }}>
+                Last Name *
+              </label>
+              <input
+                type="text"
+                value={newTenant.lastName}
+                onChange={(e) => setNewTenant({...newTenant, lastName: e.target.value})}
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '6px',
+                  fontSize: '14px'
+                }}
+              />
+            </div>
+            
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', color: '#374151' }}>
+                Email *
+              </label>
+              <input
+                type="email"
+                value={newTenant.email}
+                onChange={(e) => setNewTenant({...newTenant, email: e.target.value})}
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '6px',
+                  fontSize: '14px'
+                }}
+              />
+            </div>
+            
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', color: '#374151' }}>
+                Phone
+              </label>
+              <input
+                type="tel"
+                value={newTenant.phone}
+                onChange={(e) => setNewTenant({...newTenant, phone: e.target.value})}
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '6px',
+                  fontSize: '14px'
+                }}
+              />
+            </div>
+            
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => {
+                  setShowAddModal(false);
+                  setNewTenant({ firstName: '', lastName: '', email: '', phone: '', propertyId: '' });
+                  setError(null);
+                }}
+                style={{
+                  backgroundColor: 'transparent',
+                  color: '#6b7280',
+                  border: '1px solid #d1d5db',
+                  padding: '10px 20px',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '14px'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateTenant}
+                disabled={loading}
+                style={{
+                  backgroundColor: loading ? '#9ca3af' : '#2563eb',
+                  color: 'white',
+                  border: 'none',
+                  padding: '10px 20px',
+                  borderRadius: '6px',
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  fontSize: '14px'
+                }}
+              >
+                {loading ? 'Adding...' : 'Add Tenant'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 // Protected Route Component (UNCHANGED)
 const ProtectedRoute = ({ children, requiredRole = null }) => {
@@ -83,11 +461,25 @@ const ProtectedRoute = ({ children, requiredRole = null }) => {
   return children;
 };
 
-// Main Application Component (UNCHANGED - All your existing logic preserved)
+// Main Application Component with URL Routing Support
 function AppContent() {
   const { user, loading, logout, error, clearError } = useAuth();
-  const [currentView, setCurrentView] = useState('dashboard');
+  const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Get current view from URL or default to dashboard
+  const getCurrentViewFromURL = () => {
+    const path = location.pathname.substring(1); // Remove leading slash
+    return path || 'dashboard';
+  };
+  
+  const [currentView, setCurrentView] = useState(getCurrentViewFromURL());
   const [authView, setAuthView] = useState('login');
+  
+  // Update currentView when URL changes
+  useEffect(() => {
+    setCurrentView(getCurrentViewFromURL());
+  }, [location.pathname]);
   
   // Application data state
   const [apiStatus, setApiStatus] = useState('Checking...');
@@ -640,53 +1032,18 @@ function AppContent() {
       case 'tenants':
         return (
           <ProtectedRoute requiredRole="LANDLORD">
-            <div>
-              <h2 style={{ fontSize: '32px', fontWeight: 'bold', color: '#1f2937', marginBottom: '32px' }}>
-                👥 Tenant Management
-              </h2>
-              <div style={{ 
-                backgroundColor: 'white', 
-                padding: '40px', 
-                borderRadius: '12px',
-                textAlign: 'center'
-              }}>
-                <p style={{ color: '#6b7280', fontSize: '16px' }}>
-                  Tenant management features will appear here.
-                </p>
-                <div style={{ marginTop: '20px' }}>
-                  <span style={{ 
-                    backgroundColor: '#ede9fe', 
-                    color: '#5b21b6', 
-                    padding: '8px 16px', 
-                    borderRadius: '20px',
-                    fontSize: '14px'
-                  }}>
-                    {tenants.length} Tenants
-                  </span>
-                </div>
-              </div>
-            </div>
+            <TenantManagementView 
+              tenants={tenants} 
+              onRefresh={fetchUserSpecificData}
+              user={user}
+            />
           </ProtectedRoute>
         );
       
       case 'lease-generator':
         return (
-          <ProtectedRoute requiredRole="LANDLORD">
-            <div>
-              <h2 style={{ fontSize: '32px', fontWeight: 'bold', color: '#1f2937', marginBottom: '32px' }}>
-                🤖 AI Lease Generator
-              </h2>
-              <div style={{ 
-                backgroundColor: 'white', 
-                padding: '40px', 
-                borderRadius: '12px',
-                textAlign: 'center'
-              }}>
-                <p style={{ color: '#6b7280', fontSize: '16px' }}>
-                  AI lease generation features will appear here.
-                </p>
-              </div>
-            </div>
+          <ProtectedRoute>
+            <AIFeatures user={user} properties={properties} />
           </ProtectedRoute>
         );
       
@@ -871,7 +1228,10 @@ function AppContent() {
           {getNavigationItems().map((item) => (
             <button
               key={item.view}
-              onClick={() => setCurrentView(item.view)}
+              onClick={() => {
+                setCurrentView(item.view);
+                navigate(`/${item.view === 'dashboard' ? '' : item.view}`);
+              }}
               style={styles.navButton(currentView === item.view)}
             >
               <span>{item.icon}</span>
@@ -901,7 +1261,9 @@ function App() {
   return (
     <Router>
       <AuthProvider>
-        <AppContent />
+        <Routes>
+          <Route path="/*" element={<AppContent />} />
+        </Routes>
       </AuthProvider>
     </Router>
   );

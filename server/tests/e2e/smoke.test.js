@@ -1,5 +1,5 @@
-describe('Smoke Test', () =
-  test('System is healthy', () =
+describe('Smoke Test', () => {
+  test('System is healthy', () => {
     expect(true).toBe(true); 
   }); 
 }); 

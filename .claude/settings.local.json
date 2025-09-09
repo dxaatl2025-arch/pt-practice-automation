@@ -1,0 +1,30 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(npx prisma generate:*)",
+      "Bash(npm test:*)",
+      "Bash(npm run test:api:*)",
+      "Bash(npm run prisma:migrate:*)",
+      "Bash(npm run prisma:reset:*)",
+      "Bash(npx prisma migrate reset:*)",
+      "Bash(npx prisma:*)",
+      "Bash(npm run dev:*)",
+      "Bash(find:*)",
+      "Bash(npm run test:coverage:*)",
+      "Bash(taskkill:*)",
+      "Bash(node:*)",
+      "Bash(copy .env.demo .env)",
+      "Bash(npm run seed:test:*)",
+      "Bash(curl:*)",
+      "Bash(pkill:*)",
+      "Bash(npm start)",
+      "Bash(cmd /c:*)",
+      "Bash(netstat:*)",
+      "Bash(powershell:*)",
+      "Bash(cp:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

@@ -30,6 +30,11 @@ model User {
   maintenanceTickets MaintenanceTicket[] @relation("TenantTickets")
   payments           Payment[]           @relation("TenantPayments")
   properties         Property[]          @relation("LandlordProperties")
+  reminders          ReminderSchedule[]
+  tenantReminders    ReminderSchedule[]  @relation("TenantReminder")
+  assignedLeads      Lead[]              @relation("AssignedLeads")
+  documents          Document[]          @relation("UserDocuments")
+  chatSessions       ChatSession[]       @relation("UserChatSessions")
 
   @@index([email])
   @@index([firebaseUid])
@@ -69,6 +74,8 @@ model Property {
   applications       Application[]       @relation("PropertyApplications")
   leases             Lease[]             @relation("PropertyLeases")
   maintenanceTickets MaintenanceTicket[] @relation("PropertyTickets")
+  reminders          ReminderSchedule[]
+  documents          Document[]          @relation("PropertyDocuments")
   landlord           User                @relation("LandlordProperties", fields: [landlordId], references: [id])
 
   @@index([landlordId])
@@ -94,6 +101,7 @@ model Lease {
   property        Property    @relation("PropertyLeases", fields: [propertyId], references: [id])
   tenant          User        @relation("TenantLeases", fields: [tenantId], references: [id])
   payments        Payment[]   @relation("LeasePayments")
+  reminders       ReminderSchedule[]
 
   @@index([propertyId])
   @@index([tenantId])
@@ -210,6 +218,62 @@ model Application {
   @@map("applications")
 }
 
+model ReminderSchedule {
+  id          String            @id @default(cuid())
+  type        ReminderType
+  channel     ReminderChannel   @default(EMAIL)
+  frequency   ReminderFrequency @default(DAILY)
+  timezone    String            @default("UTC")
+  isActive    Boolean          @default(true)
+
+  // When to run next / last
+  nextRunAt   DateTime
+  lastRunAt   DateTime?
+
+  // Optional foreign keys to target audience/context
+  userId      String?           // points to User if you target user-level reminders
+  tenantId    String?
+  propertyId  String?
+  leaseId     String?
+
+  // Flexible payload for templates/variables
+  metaJson    Json              @default("{}")
+
+  // Relations (keep optional to avoid breaking existing data)
+  user        User?             @relation(fields: [userId], references: [id])
+  tenant      User?             @relation("TenantReminder", fields: [tenantId], references: [id])
+  property    Property?         @relation(fields: [propertyId], references: [id])
+  lease       Lease?            @relation(fields: [leaseId], references: [id])
+  logs        ReminderLog[]
+
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@index([isActive, nextRunAt])
+  @@index([type, channel])
+  @@index([userId])
+  @@index([tenantId])
+  @@index([propertyId])
+  @@index([leaseId])
+  @@map("reminder_schedules")
+}
+
+// Optional: simple log for assertions (use only if you already read it in tests)
+model ReminderLog {
+  id           String          @id @default(cuid())
+  scheduleId   String
+  runAt        DateTime        @default(now())
+  channel      ReminderChannel
+  status       String          @default("SENT")
+  detail       String?         // error or provider response
+  metaJson     Json            @default("{}")
+
+  schedule     ReminderSchedule @relation(fields: [scheduleId], references: [id])
+
+  @@index([scheduleId, runAt])
+  @@map("reminder_logs")
+}
+
 enum UserRole {
   ADMIN
   LANDLORD
@@ -280,4 +344,143 @@ enum ApplicationStatus {
   APPROVED
   DECLINED
   WITHDRAWN
+}
+
+enum ReminderType {
+  RENT_DUE
+  LEASE_ENDING
+  MAINTENANCE_FOLLOWUP
+}
+
+enum ReminderChannel {
+  EMAIL
+  SMS
+  BOTH
+}
+
+enum ReminderFrequency {
+  DAILY
+  WEEKLY
+  MONTHLY
+}
+
+model Lead {
+  id             String      @id @default(cuid())
+  email          String      @unique
+  firstName      String?
+  lastName       String?
+  phone          String?
+  
+  // Lead qualification
+  budgetMin      Float?
+  budgetMax      Float?
+  bedrooms       Int?
+  bathrooms      Int?
+  desiredArea    String?
+  moveInDate     DateTime?
+  petFriendly    Boolean?
+  
+  // Lead scoring & status
+  score          Int         @default(0) // 0-100
+  temperature    LeadTemp    @default(COLD)
+  source         String?     // 'website', 'referral', 'ad', etc.
+  status         LeadStatus  @default(NEW)
+  
+  // AI conversation history
+  conversationHistory Json   @default("[]")
+  lastInteraction     DateTime?
+  totalInteractions   Int     @default(0)
+  
+  // Assignment & follow-up
+  assignedToId   String?
+  assignedTo     User?       @relation("AssignedLeads", fields: [assignedToId], references: [id])
+  
+  // Property interest tracking
+  interestedProperties String[] @default([])
+  viewedProperties     String[] @default([])
+  
+  // Metadata
+  metaData       Json        @default("{}")
+  
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  
+  @@index([email])
+  @@index([temperature])
+  @@index([status])
+  @@index([score])
+  @@index([assignedToId])
+  @@index([createdAt])
+  @@map("leads")
+}
+
+enum LeadTemp {
+  COLD
+  WARM
+  HOT
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  VIEWING_SCHEDULED
+  APPLICATION_STARTED
+  APPLIED
+  CONVERTED
+  LOST
+}
+
+// AI Document Search & Chat Models
+model Document {
+  id            String      @id @default(cuid())
+  filename      String
+  originalName  String
+  mimeType      String
+  size          Int
+  storageUrl    String      // S3 or local path
+  processedText String?     // Extracted text content
+  metadata      Json?       // OCR results, page count, etc
+  
+  // Relations
+  propertyId    String?
+  uploadedById  String
+  property      Property?   @relation("PropertyDocuments", fields: [propertyId], references: [id])
+  uploadedBy    User        @relation("UserDocuments", fields: [uploadedById], references: [id])
+  
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([propertyId])
+  @@index([uploadedById])
+  @@index([mimeType])
+  @@map("documents")
+}
+
+model ChatSession {
+  id         String        @id @default(cuid())
+  userId     String
+  title      String?       @default("New Chat")
+  context    Json?         // Conversation context
+  messages   ChatMessage[]
+  user       User          @relation("UserChatSessions", fields: [userId], references: [id])
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  @@index([userId])
+  @@map("chat_sessions")
+}
+
+model ChatMessage {
+  id          String      @id @default(cuid())
+  sessionId   String
+  role        String      // 'user' | 'assistant' | 'system'
+  content     String      @db.Text
+  metadata    Json?       // Sources, confidence, etc
+  session     ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  createdAt   DateTime    @default(now())
+
+  @@index([sessionId])
+  @@index([role])
+  @@map("chat_messages")
 }

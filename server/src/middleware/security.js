@@ -91,7 +91,14 @@ const helmetConfig = {
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
       imgSrc: ["'self'", "data:", "https:", "blob:"],
       scriptSrc: ["'self'", "https://js.stripe.com"],
-      connectSrc: ["'self'", "https://api.stripe.com", "https://*.googleapis.com"],
+      connectSrc: [
+        "'self'", 
+        "https://api.stripe.com", 
+        "https://*.googleapis.com",
+        "https://*.amazonaws.com",
+        "https://*.s3.amazonaws.com",
+        process.env.S3_ENDPOINT || ""
+      ].filter(Boolean),
       frameSrc: ["'self'", "https://js.stripe.com"],
       objectSrc: ["'none'"]
     }
@@ -130,7 +137,6 @@ const securityHeaders = (req, res, next) => {
     'X-Content-Type-Options': 'nosniff',
     'X-Frame-Options': 'DENY',
     'X-XSS-Protection': '1; mode=block',
-    'X-Database-Target': process.env.DB_TARGET || 'mongo',
     'X-Security-Enhanced': 'true'
   });
   next();

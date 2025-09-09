@@ -1,6 +1,16 @@
-// Replace your existing errorHandler with this enhanced version
+const logger = require('../config/logging');
+
 const errorHandler = (err, req, res, next) => {
-  console.error('Error Stack:', err.stack);
+  // Log error with structured logging
+  logger.error('API Error', {
+    error: err.message,
+    stack: err.stack,
+    url: req.originalUrl,
+    method: req.method,
+    userAgent: req.get('User-Agent'),
+    userId: req.user?.id,
+    component: 'errorHandler'
+  });
 
   // ===== PRISMA ERRORS (NEW) =====
   if (err.code && err.code.startsWith('P')) {
