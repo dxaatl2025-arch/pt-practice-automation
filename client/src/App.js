@@ -1,32 +1,56 @@
-// src/App.js - Minimal Router Integration (Preserves All Existing Functionality)
-import React, { useState, useEffect } from 'react';
+// src/App.js - Marketing + Application Integration
+import React, { useState, useEffect, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { useRequireAuth } from './hooks/useRequireAuth';
 import axios from 'axios';
 import './App.css';
 
-// Import your existing pages
+// Contexts and Hooks
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { useRequireAuth } from './hooks/useRequireAuth';
+import { usePageTracking } from './hooks/useAnalytics';
+
+// Application Pages
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
-import PropertyList from './pages/PropertyList';
 import UserProfile from './pages/UserProfile';
 import ApplicationForm from './pages/ApplicationForm/index.js';
 import PropertyApplications from './pages/PropertyApplications/index.js';
 import TenantProfile from './components/TenantProfile';
 import AIFeatures from './pages/AIFeatures.jsx';
 
-// Import API client and components
+// API client and components
 import { tenantsApi, handleApiError } from './lib/api';
 import EmptyState from './components/shared/EmptyState';
+
+// Supporting Components
+import TawkLoader from './components/TawkLoader';
+import MarketingNav from './components/MarketingNav';
+import Footer from './components/layout/Footer';
+import AppNav from './components/AppNav';
+import RedirectHandler from './components/RedirectHandler';
+
+// Marketing Pages (Lazy Loaded)
+const Home = React.lazy(() => import('./pages/marketing/Home'));
+const Features = React.lazy(() => import('./pages/marketing/Features'));
+const Pricing = React.lazy(() => import('./pages/marketing/Pricing'));
+const About = React.lazy(() => import('./pages/marketing/About'));
+const Founders = React.lazy(() => import('./pages/marketing/Founders'));
+const Affiliate = React.lazy(() => import('./pages/marketing/Affiliate'));
+const AffiliateSignup = React.lazy(() => import('./pages/marketing/AffiliateSignup'));
+const Demo = React.lazy(() => import('./pages/marketing/Demo'));
+const Contact = React.lazy(() => import('./pages/marketing/Contact'));
+const Blog = React.lazy(() => import('./pages/marketing/Blog'));
+const BlogPost = React.lazy(() => import('./pages/marketing/BlogPost'));
+
+// 404 NotFound component
+const NotFound = React.lazy(() => import('./components/NotFound'));
 
 const API_URL = 'http://localhost:5000/api';
 
 // Tenant Management Component
 const TenantManagementView = ({ tenants, onRefresh, user }) => {
   const [showAddModal, setShowAddModal] = React.useState(false);
-  const [editingTenant, setEditingTenant] = React.useState(null);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState(null);
   
@@ -223,7 +247,7 @@ const TenantManagementView = ({ tenants, onRefresh, user }) => {
                 
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <button
-                    onClick={() => setEditingTenant(tenant)}
+                    onClick={() => alert('Edit tenant functionality coming soon')}
                     style={{
                       backgroundColor: 'transparent',
                       color: '#6b7280',
@@ -461,14 +485,66 @@ const ProtectedRoute = ({ children, requiredRole = null }) => {
   return children;
 };
 
+// Marketing Layout Component
+const MarketingLayout = ({ children }) => {
+  usePageTracking(); // Track page views for marketing pages
+  
+  return (
+    <>
+      <RedirectHandler />
+      <MarketingNav />
+      <main>
+        {children}
+      </main>
+      <Footer />
+    </>
+  );
+};
+
+// Loading Spinner Component
+const LoadingSpinner = () => (
+  <div style={{ 
+    minHeight: '100vh', 
+    display: 'flex', 
+    alignItems: 'center', 
+    justifyContent: 'center',
+    backgroundColor: '#f8fafc'
+  }}>
+    <div style={{ textAlign: 'center' }}>
+      <div style={{
+        width: '48px',
+        height: '48px',
+        border: '4px solid #f3f4f6',
+        borderTop: '4px solid #7c3aed',
+        borderRadius: '50%',
+        animation: 'spin 1s linear infinite',
+        margin: '0 auto 16px auto'
+      }}></div>
+      <p style={{ color: '#6b7280' }}>Loading...</p>
+    </div>
+  </div>
+);
+
 // Main Application Component with URL Routing Support
 function AppContent() {
   const { user, loading, logout, error, clearError } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   
+  // Check if current route is a marketing page
+  const isMarketingRoute = () => {
+    const marketingPaths = [
+      '/', '/features', '/pricing', '/about', '/founders', '/affiliate', '/affiliate/signup',
+      '/demo', '/contact', '/blog', '/signup', '/login'
+    ];
+    return marketingPaths.includes(location.pathname) || 
+           location.pathname.startsWith('/blog/') ||
+           location.pathname === '/404';
+  };
+  
   // Get current view from URL or default to dashboard
   const getCurrentViewFromURL = () => {
+    if (isMarketingRoute()) return 'marketing';
     const path = location.pathname.substring(1); // Remove leading slash
     return path || 'dashboard';
   };
@@ -479,7 +555,7 @@ function AppContent() {
   // Update currentView when URL changes
   useEffect(() => {
     setCurrentView(getCurrentViewFromURL());
-  }, [location.pathname]);
+  }, [location.pathname, getCurrentViewFromURL]);
   
   // Application data state
   const [apiStatus, setApiStatus] = useState('Checking...');
@@ -493,25 +569,52 @@ function AppContent() {
 
   // Initialize data when user logs in
   useEffect(() => {
+    const initializeData = async () => {
+      try {
+        setApiStatus('🔄 Loading...');
+        await Promise.all([
+          testAPIConnection(),
+          fetchProperties(),
+          fetchUserSpecificData()
+        ]);
+        setApiStatus('✅ CONNECTED');
+      } catch (error) {
+        console.error('❌ Failed to initialize app data:', error);
+        setApiStatus('❌ DISCONNECTED');
+      }
+    };
+    
     if (user) {
-      initializeApplicationData();
+      initializeData();
     }
   }, [user]);
 
-  const initializeApplicationData = async () => {
-    try {
-      setApiStatus('🔄 Loading...');
-      await Promise.all([
-        testAPIConnection(),
-        fetchProperties(),
-        fetchUserSpecificData()
-      ]);
-      setApiStatus('✅ CONNECTED');
-    } catch (error) {
-      console.error('❌ Failed to initialize app data:', error);
-      setApiStatus('❌ DISCONNECTED');
+  // Handle role-based redirect after successful login (prevent bouncing back to previous page)
+  useEffect(() => {
+    if (user && !isMarketingRoute()) {
+      const getRoleHomePage = () => {
+        switch (user.role) {
+          case 'OWNER':
+            return 'owner';
+          case 'TENANT':
+            return 'properties'; // Tenants see available properties first
+          case 'AFFILIATE':
+            return 'affiliate';
+          case 'LANDLORD':
+          default:
+            return 'dashboard';
+        }
+      };
+
+      // Only redirect if we're on a generic route or login/signup routes
+      const currentPath = location.pathname;
+      if (currentPath === '/' || currentPath === '/login' || currentPath === '/signup') {
+        const roleHome = getRoleHomePage();
+        setCurrentView(roleHome);
+        navigate(roleHome === 'dashboard' ? '/' : `/${roleHome}`, { replace: true });
+      }
     }
-  };
+  }, [user, location.pathname, navigate, isMarketingRoute]);
 
   const testAPIConnection = async () => {
     try {
@@ -649,7 +752,34 @@ function AppContent() {
     );
   }
 
-  // Authentication screens
+  // Show marketing pages for unauthenticated users on marketing routes
+  if (!user && isMarketingRoute()) {
+    return (
+      <MarketingLayout>
+        <Suspense fallback={<LoadingSpinner />}>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/features" element={<Features />} />
+            <Route path="/pricing" element={<Pricing />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/founders" element={<Founders />} />
+            <Route path="/affiliate" element={<Affiliate />} />
+            <Route path="/affiliate/signup" element={<AffiliateSignup />} />
+            <Route path="/demo" element={<Demo />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/blog" element={<Blog />} />
+            <Route path="/blog/:slug" element={<BlogPost />} />
+            <Route path="/signup" element={<Register onSwitchToLogin={() => navigate('/login')} />} />
+            <Route path="/login" element={<Login onSwitchToRegister={() => navigate('/signup')} />} />
+            <Route path="/404" element={<NotFound />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </Suspense>
+      </MarketingLayout>
+    );
+  }
+  
+  // Authentication screens for non-marketing routes
   if (!user) {
     return (
       <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc' }}>
@@ -1056,6 +1186,33 @@ function AppContent() {
     }
   };
 
+  // Marketing routes for authenticated users
+  if (user && isMarketingRoute()) {
+    return (
+      <MarketingLayout>
+        <Suspense fallback={<LoadingSpinner />}>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/features" element={<Features />} />
+            <Route path="/pricing" element={<Pricing />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/founders" element={<Founders />} />
+            <Route path="/affiliate" element={<Affiliate />} />
+            <Route path="/affiliate/signup" element={<AffiliateSignup />} />
+            <Route path="/demo" element={<Demo />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/blog" element={<Blog />} />
+            <Route path="/blog/:slug" element={<BlogPost />} />
+            <Route path="/signup" element={<Register onSwitchToLogin={() => navigate('/login')} />} />
+            <Route path="/login" element={<Login onSwitchToRegister={() => navigate('/signup')} />} />
+            <Route path="/404" element={<NotFound />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </Suspense>
+      </MarketingLayout>
+    );
+  }
+
   // Main application UI styles
   const styles = {
     container: {
@@ -1112,7 +1269,6 @@ function AppContent() {
       gap: '8px',
       padding: '8px 16px',
       borderRadius: '8px',
-      border: 'none',
       cursor: 'pointer',
       fontWeight: '500',
       transition: 'all 0.2s',
@@ -1261,9 +1417,8 @@ function App() {
   return (
     <Router>
       <AuthProvider>
-        <Routes>
-          <Route path="/*" element={<AppContent />} />
-        </Routes>
+        <TawkLoader />
+        <AppContent />
       </AuthProvider>
     </Router>
   );

@@ -1,3 +1,30 @@
-# https://www.robotstxt.org/robotstxt.html
 User-agent: *
-Disallow:
+Allow: /
+
+# Marketing Pages
+Allow: /features
+Allow: /pricing
+Allow: /about
+Allow: /founders
+Allow: /affiliate
+Allow: /demo
+Allow: /contact
+Allow: /blog
+
+# Authentication
+Allow: /login
+Allow: /signup
+
+# Disallow admin and internal paths
+Disallow: /admin/
+Disallow: /dashboard/
+Disallow: /api/
+Disallow: /private/
+
+# Allow common assets
+Allow: /static/
+Allow: /favicon.ico
+Allow: /manifest.json
+
+# Sitemap
+Sitemap: https://propertyplus.us/sitemap.xml

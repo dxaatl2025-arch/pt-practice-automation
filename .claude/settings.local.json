@@ -22,7 +22,14 @@
       "Bash(cmd /c:*)",
       "Bash(netstat:*)",
       "Bash(powershell:*)",
-      "Bash(cp:*)"
+      "Bash(cp:*)",
+      "Bash(mkdir:*)",
+      "Bash(npx tailwindcss init:*)",
+      "Bash(npx lighthouse:*)",
+      "Bash(npm run test:e2e:*)",
+      "Bash(set PORT=3001)",
+      "Bash(npm run build:*)",
+      "Bash(PORT=3002 npm start)"
     ],
     "deny": [],
     "ask": []
